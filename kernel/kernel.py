@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from terminal.terminal import Terminal
 
 class Kernel:
 
@@ -18,12 +19,16 @@ class Kernel:
         self.load_filesystem()
         self.log("\nSystem ready.\n")
 
+        terminal = Terminal(self)
+        terminal.start()
+
     def _print_banner(self):
 
         print("=" * 40)
         print(f"{self.system_name} v {self.version}")
         print("Cyber Security Simulation Environment")
         print("=" * 40)
+        print("\n")
 
     def load_users(self):
 
