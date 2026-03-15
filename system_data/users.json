@@ -1,0 +1,16 @@
+{
+  "guest": {
+    "password": "guest",
+    "role": "user"
+  },
+
+  "analyst": {
+    "password": "cipher",
+    "role": "analyst"
+  },
+
+  "admin": {
+    "password": "admin123",
+    "role": "admin"
+  }
+}

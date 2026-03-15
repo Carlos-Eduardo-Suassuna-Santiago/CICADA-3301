@@ -1,0 +1,19 @@
+{
+  "/": {
+    "home": {
+      "guest": {
+        "readme.txt": "Welcome investigator."
+      }
+    },
+
+    "var": {
+      "log": {
+        "system.log": "System initialized"
+      }
+    },
+
+    "etc": {},
+
+    "root": {}
+  }
+}
