@@ -19,7 +19,7 @@ class Terminal:
         self.parser = CommandParser(kernel)
         self.auth = kernel.user_manager
         self.current_user = "guest"
-        self.current_dir = "/home/guest"
+        self.current_dir = "/"
         self.running = True
         self.commands = {
             "ls": LsCommand(),

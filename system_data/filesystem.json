@@ -1,19 +1,49 @@
 {
   "/": {
-    "home": {
-      "guest": {
-        "readme.txt": "Welcome investigator."
+    "type": "dir",
+    "owner": "root",
+    "perm": "755",
+    "content": {
+
+      "home": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "guest": {
+            "type": "dir",
+            "owner": "guest",
+            "perm": "755",
+            "content": {
+
+              "readme.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "Welcome investigator."
+              }
+
+            }
+          }
+
+        }
+      },
+
+      "root": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "700",
+        "content": {
+            "secret.txt": {
+                "type": "file",
+                "owner": "root",
+                "perm": "600",
+                "content": "Top secret data"
+              }
+        }
       }
-    },
 
-    "var": {
-      "log": {
-        "system.log": "System initialized"
-      }
-    },
-
-    "etc": {},
-
-    "root": {}
+    }
   }
 }
