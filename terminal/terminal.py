@@ -4,6 +4,11 @@ from commands.ls import LsCommand
 from commands.cd import CdCommand
 from commands.pwd import PwdCommand
 from commands.cat import CatCommand
+#from commands.clear import ClearCommand
+#from commands.exit import ExitCommand
+from commands.login import LoginCommand
+from commands.logout import LogoutCommand
+from commands.whoami import WhoamiCommand
 
 class Terminal:
 
@@ -12,6 +17,7 @@ class Terminal:
         self.kernel = kernel
         self.vfs = kernel.vfs
         self.parser = CommandParser(kernel)
+        self.auth = kernel.user_manager
         self.current_user = "guest"
         self.current_dir = "/home/guest"
         self.running = True
@@ -20,14 +26,17 @@ class Terminal:
             "cd": CdCommand(),
             "pwd": PwdCommand(),
             "cat": CatCommand(),
-            "help": HelpCommand()
+            "help": HelpCommand(),
+            "login": LoginCommand(),
+            "logout": LogoutCommand(),
+            "whoami": WhoamiCommand(),
         }
 
     def start(self):
 
         while self.running:
 
-            prompt = f"{self.current_user}@{self.kernel.system_name}:{self.vfs.get_pwd()}$ "
+            prompt = f"{self.auth.get_current_user()}@{self.kernel.system_name}:{self.vfs.get_pwd()}$ "
             command = input(prompt)
             self.execute(command)
     

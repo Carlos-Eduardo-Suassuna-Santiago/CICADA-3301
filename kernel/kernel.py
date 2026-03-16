@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from terminal.terminal import Terminal
 from filesystem.virtual_fs import VirtualFileSystem
+from auth.user_manager import UserManager
 
 class Kernel:
 
@@ -17,6 +18,7 @@ class Kernel:
 
         self._print_banner()
         self.load_users()
+        self.user_manager = UserManager(self.users)
         self.load_filesystem()
         self.vfs = VirtualFileSystem(self.filesystem)
         self.log("\nSystem ready.\n")
