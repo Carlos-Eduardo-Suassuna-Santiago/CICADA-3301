@@ -1,4 +1,9 @@
 from terminal.parser import CommandParser
+from commands.help import HelpCommand
+from commands.ls import LsCommand
+from commands.cd import CdCommand
+from commands.pwd import PwdCommand
+from commands.cat import CatCommand
 
 class Terminal:
 
@@ -10,6 +15,13 @@ class Terminal:
         self.current_user = "guest"
         self.current_dir = "/home/guest"
         self.running = True
+        self.commands = {
+            "ls": LsCommand(),
+            "cd": CdCommand(),
+            "pwd": PwdCommand(),
+            "cat": CatCommand(),
+            "help": HelpCommand()
+        }
 
     def start(self):
 
@@ -21,35 +33,17 @@ class Terminal:
     
     def execute(self, command):
         
-        cmd, args = self.parser.parse(command)
+       cmd, args = self.parser.parse(command)
 
-        if cmd == "exit":
-            self.running = False
-            print("\nExiting terminal...")
-        elif cmd == "help":
-            self.help()
-        elif cmd == "ls":
-            files = self.vfs.list_dir()
-            for f in files:
-                print(f)
-        elif cmd == "cd":
-            if len(args) == 0:
-                return
-            success = self.vfs.change_dir(args[0])
-            if not success:
-                print(f"Directory '{args[0]}' not found")
-        elif cmd == "pwd":
-            print(self.vfs.get_pwd())
-        elif cmd == "cat":
-            if len(args) == 0:
-                return
-            content = self.vfs.read_file(args[0])
-            if content:
-                print(content)
-            else:
-                print(f"File '{args[0]}' not found")
-        elif cmd == "clear":
-            print("\n" * 50)
+       if cmd == "":
+           return
+       if cmd == "exit":
+          self.running = False
+          return
+       if cmd in self.commands:
+          self.commands[cmd].execute(self, args) 
+       else:
+          print(f"Command not found: {cmd}")
 
     def help(self):
 
