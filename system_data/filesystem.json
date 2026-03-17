@@ -4,25 +4,22 @@
     "owner": "root",
     "perm": "755",
     "content": {
-
       "home": {
         "type": "dir",
         "owner": "root",
         "perm": "755",
         "content": {
-
           "guest": {
             "type": "dir",
             "owner": "guest",
             "perm": "755",
             "content": {
-
               "readme.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "Welcome investigator."
-            },
+              },
               "message.txt": {
                 "type": "file",
                 "owner": "guest",
@@ -52,26 +49,24 @@
                 "owner": "guest",
                 "perm": "644",
                 "content": "rijvs"
+              }
             }
           }
         }
       },
-
       "root": {
         "type": "dir",
         "owner": "root",
         "perm": "700",
         "content": {
-            "secret.txt": {
-                "type": "file",
-                "owner": "root",
-                "perm": "600",
-                "content": "Top secret data"
-              }
+          "secret.txt": {
+            "type": "file",
+            "owner": "root",
+            "perm": "600",
+            "content": "Top secret data"
+          }
         }
       }
-
     }
   }
-}
 }
