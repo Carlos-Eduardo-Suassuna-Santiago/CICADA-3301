@@ -4,8 +4,7 @@ from commands.ls import LsCommand
 from commands.cd import CdCommand
 from commands.pwd import PwdCommand
 from commands.cat import CatCommand
-#from commands.clear import ClearCommand
-#from commands.exit import ExitCommand
+from commands.clear import ClearCommand
 from commands.login import LoginCommand
 from commands.logout import LogoutCommand
 from commands.whoami import WhoamiCommand
@@ -30,6 +29,7 @@ class Terminal:
             "login": LoginCommand(),
             "logout": LogoutCommand(),
             "whoami": WhoamiCommand(),
+            "clear": ClearCommand()
         }
 
     def start(self):
