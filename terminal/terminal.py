@@ -8,6 +8,10 @@ from commands.clear import ClearCommand
 from commands.login import LoginCommand
 from commands.logout import LogoutCommand
 from commands.whoami import WhoamiCommand
+from commands.decode import DecodeCommand
+from commands.hash import HashCommand
+from commands.stego import StegoCommand
+from commands.decrypt import DecryptCommand
 
 class Terminal:
 
@@ -29,7 +33,11 @@ class Terminal:
             "login": LoginCommand(),
             "logout": LogoutCommand(),
             "whoami": WhoamiCommand(),
-            "clear": ClearCommand()
+            "clear": ClearCommand(),
+            "decode": DecodeCommand(),
+            "hash": HashCommand(),
+            "stego": StegoCommand(),
+            "decrypt": DecryptCommand()
         }
 
     def start(self):

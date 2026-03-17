@@ -22,11 +22,38 @@
                 "owner": "guest",
                 "perm": "644",
                 "content": "Welcome investigator."
-              }
-
+            },
+              "message.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "SGVsbG8gQ3liZXIgQ3Rm"
+              },
+              "password.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "password123"
+              },
+              "hash.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
+              },
+              "secret_caesar.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "khoor"
+              },
+              "secret_vigenere.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "rijvs"
             }
           }
-
         }
       },
 
@@ -46,4 +73,5 @@
 
     }
   }
+}
 }
