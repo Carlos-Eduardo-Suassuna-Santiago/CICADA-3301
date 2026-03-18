@@ -13,11 +13,15 @@ from commands.hash import HashCommand
 from commands.stego import StegoCommand
 from commands.decrypt import DecryptCommand
 from commands.submit import SubmitCommand
+from commands.history import HistoryCommand
+from commands.sudo import SudoCommand
+
 
 class Terminal:
 
     def __init__(self, kernel):
 
+        self.history = []
         self.kernel = kernel
         self.vfs = kernel.vfs
         self.parser = CommandParser(kernel)
@@ -39,7 +43,9 @@ class Terminal:
             "hash": HashCommand(),
             "stego": StegoCommand(),
             "decrypt": DecryptCommand(),
-            "submit": SubmitCommand()
+            "submit": SubmitCommand(),
+            "history": HistoryCommand(),
+            "sudo": SudoCommand(),
         }
 
     def start(self):
@@ -49,6 +55,7 @@ class Terminal:
             prompt = f"{self.auth.get_current_user()}@{self.kernel.system_name}:{self.vfs.get_pwd()}$ "
             command = input(prompt)
             self.execute(command)
+            self.history.append(command)
     
     def execute(self, command):
         
