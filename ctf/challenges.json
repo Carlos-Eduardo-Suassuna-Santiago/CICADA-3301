@@ -1,0 +1,16 @@
+{
+  "challenges": [
+    {
+      "id": 1,
+      "name": "Base64",
+      "description": "Decode the hidden message",
+      "flag": "flag{hello_cyber_ctf}"
+    },
+    {
+      "id": 2,
+      "name": "Caesar Cipher",
+      "description": "Decrypt the message",
+      "flag": "flag{hello}"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ from commands.decode import DecodeCommand
 from commands.hash import HashCommand
 from commands.stego import StegoCommand
 from commands.decrypt import DecryptCommand
+from commands.submit import SubmitCommand
 
 class Terminal:
 
@@ -37,7 +38,8 @@ class Terminal:
             "decode": DecodeCommand(),
             "hash": HashCommand(),
             "stego": StegoCommand(),
-            "decrypt": DecryptCommand()
+            "decrypt": DecryptCommand(),
+            "submit": SubmitCommand()
         }
 
     def start(self):
