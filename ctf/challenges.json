@@ -3,14 +3,22 @@
     {
       "id": 1,
       "name": "Base64",
-      "description": "Decode the hidden message",
-      "flag": "flag{hello_cyber_ctf}"
-    },
-    {
-      "id": 2,
-      "name": "Caesar Cipher",
-      "description": "Decrypt the message",
-      "flag": "flag{hello}"
+      "description": "Decode the message in message.txt",
+      "flag": "flag{hello_cyber_ctf}",
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/message.txt",
+          "content": "SGVsbG8gQ3liZXIgQ3Rm"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/next.txt",
+          "content": "khoor"
+        }
+      ]
     }
   ]
 }

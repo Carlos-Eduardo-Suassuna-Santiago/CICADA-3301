@@ -89,3 +89,23 @@ class VirtualFileSystem:
             return True
 
         return False
+
+    def create_file(self, path, content, owner="root", perm="644"):
+
+        parts = path.strip("/").split("/")
+        filename = parts[-1]
+        dir_path = parts[:-1]
+
+        current = self.fs["/"]
+
+        for p in dir_path:
+            if p not in current["content"]:
+                current["content"][p] = {"type": "dir", "content": {}, "owner": owner, "perm": perm}
+            current = current["content"][p]
+
+        current["content"][filename] = {
+            "type": "file",
+            "content": content,
+            "owner": owner,
+            "perm": perm,
+        }

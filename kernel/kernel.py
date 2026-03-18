@@ -19,10 +19,10 @@ class Kernel:
 
         self._print_banner()
         self.load_users()
-        self.ctf = ChallengeManager()
         self.user_manager = UserManager(self.users)
         self.load_filesystem()
         self.vfs = VirtualFileSystem(self.filesystem)
+        self.ctf = ChallengeManager(self.vfs)
         self.log("\nSystem ready.\n")
 
         terminal = Terminal(self)
