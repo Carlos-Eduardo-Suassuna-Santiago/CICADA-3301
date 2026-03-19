@@ -1,21 +1,21 @@
 {
   "guest": {
-    "password": "guest",
+    "password": "$2b$12$mu/leenzFhz.0VbabuJ6z.q0Tyv/EKQwtnl7PdQfUMRvGKzaqaGRS",
     "role": "user"
   },
 
   "analyst": {
-    "password": "cipher",
+    "password": "$2b$12$1txzv8nL9yCeSEuWs03e0O5sUdRzjlO99mfy8hrWaRcABXqcAmu9W",
     "role": "analyst"
   },
 
   "admin": {
-    "password": "admin123",
+    "password": "$2b$12$8aaU22OI0akzGplx0gNe.unaQFR0AA4TKquB1KQwBfiyQHGuego8m",
     "role": "admin"
   },
 
   "root": {
-    "password": "toor",
+    "password": "$2b$12$6E9JxJ79c5YoO3E7e0TNoO3ldGcIqHoExZFCTgkhC.r4SvBPeLwqy",
     "role": "root"
   }
 }

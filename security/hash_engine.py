@@ -5,9 +5,9 @@ class HashEngine:
 
     def generate(self, data):
 
+        if isinstance(data, bytes):
+            data = data.decode('utf-8', errors='ignore')
         return{
-            "md5": hashlib.md5(data.encode()).hexdigest(),
-            "sha1": hashlib.sha1(data.encode()).hexdigest(),
             "sha256": hashlib.sha256(data.encode()).hexdigest(),
         }
     
@@ -25,11 +25,7 @@ class HashEngine:
         if not re.fullmatch(r"[0-9a-f]+", hash_value):
             return "Unknown"
 
-        if length == 32:
-            return "MD5"
-        elif length == 40:
-            return "SHA1"
-        elif length == 64:
+        if length == 64:
             return "SHA256"
 
         return "Unknown"

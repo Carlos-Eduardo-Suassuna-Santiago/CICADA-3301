@@ -1,4 +1,5 @@
 from commands.base_command import BaseCommand
+import getpass
 
 class LoginCommand(BaseCommand):
 
@@ -7,7 +8,7 @@ class LoginCommand(BaseCommand):
     def execute(self, terminal, args):
 
         username = input("Username: ")
-        password = input("Password: ")
+        password = getpass.getpass("Password: ")
 
         success = terminal.auth.login(username, password)
 

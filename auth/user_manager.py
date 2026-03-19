@@ -1,3 +1,5 @@
+import bcrypt
+
 class UserManager:
 
     def __init__(self, users_data):
@@ -10,9 +12,8 @@ class UserManager:
         if username not in self.users:
             return False
         
-        users = self.users[username]
-
-        if users["password"] == password:
+        stored_hash = self.users[username]["password"]
+        if bcrypt.checkpw(password.encode(), stored_hash.encode()):
             self.current_user = username
             return True
         return False

@@ -28,7 +28,11 @@ class DecryptCommand(BaseCommand):
                 print("Usage: decrypt cesar <file> <shift>")
                 return
             
-            shift = int(args[2])
+            try:
+                shift = int(args[2])
+            except ValueError:
+                print("Shift must be a number.")
+                return
             result = self.engine.decrypt_caesar(content, shift)
             print(f"Decrypted content:\n{result}")
 

@@ -6,14 +6,14 @@ class Decoder:
 
         try:
             return base64.b64decode(data).decode('utf-8')
-        except:
+        except (ValueError, UnicodeDecodeError):
             return None
         
     def decode_hex(self, data):
 
         try:
             return bytes.fromhex(data).decode('utf-8')
-        except:
+        except (ValueError, UnicodeDecodeError):
             return None
         
     def decode_binary(self, data):
@@ -21,7 +21,7 @@ class Decoder:
         try:
             chars = data.split()
             return ''.join([chr(int(char, 2)) for char in chars])
-        except:
+        except (ValueError, UnicodeDecodeError):
             return None
         
     def auto_decode(self, data):

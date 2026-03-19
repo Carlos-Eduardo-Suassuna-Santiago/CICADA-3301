@@ -34,5 +34,5 @@ class StegoEngine:
 
             return ''.join(chars)
 
-        except Exception as e:
+        except (FileNotFoundError, OSError, ValueError) as e:
             return f"error: {str(e)}"
