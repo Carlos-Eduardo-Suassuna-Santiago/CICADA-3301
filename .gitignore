@@ -39,7 +39,7 @@ htmlcov/
 .idea/
 
 # Logs
-logs/
+#logs/
 
 # System files
 .DS_Store
