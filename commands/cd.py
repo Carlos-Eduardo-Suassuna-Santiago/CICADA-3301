@@ -9,7 +9,7 @@ class CdCommand(BaseCommand):
         if len(args) == 0:
             return
         
-        success = terminal.vfs.change_dir(args[0])
+        success = terminal.vfs.change_dir(args[0], terminal.auth.get_current_user())
 
         if not success:
-            print(f"Directory '{args[0]}' not found.")
+            print(f"Directory '{args[0]}' not found or permission denied.")

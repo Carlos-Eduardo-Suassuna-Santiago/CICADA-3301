@@ -12,10 +12,10 @@ class CatCommand(BaseCommand):
 
         filename = args[0]
 
-        content = terminal.vfs.read_file(filename)
+        content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
 
         if content is None:
-            print("file not found")
+            print("file not found or permission denied")
             return
 
         # pega o nó do arquivo no filesystem

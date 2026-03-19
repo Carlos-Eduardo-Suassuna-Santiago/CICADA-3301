@@ -25,6 +25,10 @@ class UserManager:
 
         return self.current_user
     
+    def set_current_user(self, user):
+
+        self.current_user = user
+    
     def get_role(self):
 
         return self.users[self.current_user]["role"]

@@ -8,5 +8,5 @@ class HistoryCommand(BaseCommand):
 
     def execute(self, terminal, args):
 
-        for i, cmd in enumerate(terminal.command_history):
+        for i, cmd in enumerate(terminal.history):
             print(f"{i + 1}: {cmd}")

@@ -30,7 +30,7 @@ class VirtualFileSystem:
 
         return node
     
-    def list_dir(self, path=None):
+    def list_dir(self, path=None, user=None):
 
         if path is None:
             path = self.current_path
@@ -38,19 +38,17 @@ class VirtualFileSystem:
         parts = self._resolve_path(path)
         node = self._get_node(parts)
 
-        if node and node["type"] == "dir":
-
-            return list(node["content"].keys())
-
+        if node and node["type"] == "dir" and self.has_permission(node, user):
+            return [f for f in node["content"].keys() if self.has_permission(node["content"][f], user)]
         return []
     
-    def change_dir(self, path):
+    def change_dir(self, path, user):
 
         parts = self._resolve_path(path)
 
         node = self._get_node(parts)
 
-        if node and node["type"] == "dir":
+        if node and node["type"] == "dir" and self.has_permission(node, user):
 
             self.current_path = "/" + "/".join(parts)
 
@@ -62,12 +60,18 @@ class VirtualFileSystem:
         return False
 
 
-    def read_file(self, filename):
+    def read_file(self, filename, user):
 
         parts = self._resolve_path(filename)
         node = self._get_node(parts)
 
-        if node and node["type"] == "file":
+        if node and node["type"] == "file" and self.has_permission(node, user):
+            # check parent directories permissions
+            current = self.fs["/"]
+            for p in parts[:-1]:
+                if not self.has_permission(current, user):
+                    return None
+                current = current["content"][p]
             return node["content"]
         return None 
     
@@ -85,7 +89,7 @@ class VirtualFileSystem:
             return True
 
         # permissao de leitura para outros
-        if node["perm"][2] == "4":
+        if int(node["perm"][2], 8) & 4:  # check read bit for others
             return True
 
         return False

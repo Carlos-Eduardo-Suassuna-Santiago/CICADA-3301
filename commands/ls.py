@@ -6,7 +6,7 @@ class LsCommand(BaseCommand):
 
     def execute(self, terminal, args):
 
-        files  = terminal.vfs.list_dir()
+        files  = terminal.vfs.list_dir(None, terminal.auth.get_current_user())
 
         for f in files:
             print(f)

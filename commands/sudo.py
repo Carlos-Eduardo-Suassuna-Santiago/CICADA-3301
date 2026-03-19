@@ -13,7 +13,7 @@ class SudoCommand(BaseCommand):
             return
 
         original_user = terminal.auth.get_current_user()
-        terminal.auth.set_current_user = "root"
+        terminal.auth.set_current_user("root")
 
         command_name = args[0]
         command_args = args[1:]
@@ -25,4 +25,4 @@ class SudoCommand(BaseCommand):
         else:
             print(f"Command not found: {command_name}")
 
-        terminal.auth.set_current_user = original_user
+        terminal.auth.set_current_user(original_user)
