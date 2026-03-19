@@ -2,6 +2,8 @@ from commands.base_command import BaseCommand
 
 class SubmitCommand(BaseCommand):
     name = "submit"
+    description = "Submit a flag"
+    usage = "submit <flag>"
 
     def execute(self, terminal, args):
 

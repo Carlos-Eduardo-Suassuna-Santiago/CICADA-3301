@@ -4,6 +4,8 @@ from security.decoder import Decoder
 class DecodeCommand(BaseCommand):
 
     name = "decode"
+    description = "Decode encoded text"
+    usage = "decode <text>"
 
     def __init__(self):
         self.decoder = Decoder()

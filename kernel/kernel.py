@@ -4,27 +4,23 @@ from datetime import datetime
 from terminal.terminal import Terminal
 from filesystem.virtual_fs import VirtualFileSystem
 from auth.user_manager import UserManager
-from ctf.challenge_manager import ChallengeManager
+from logs.logger import Logger
 
 class Kernel:
 
     def __init__(self):
 
-        self.system_name = "INITIUM OS"
+        self.system_name = "initium"
         self.version = "0.1"
-        self.users = {}
-        self.filesystem = {}
+        self.load_users()
+        self.load_filesystem()
+        self.vfs = VirtualFileSystem(self.filesystem)
+        self.user_manager = UserManager(self.users)
+        self.logger = Logger()
 
     def boot(self):
 
-        self._print_banner()
-        self.load_users()
-        self.user_manager = UserManager(self.users)
-        self.load_filesystem()
-        self.vfs = VirtualFileSystem(self.filesystem)
-        self.ctf = ChallengeManager(self.vfs)
-        self.log("\nSystem ready.\n")
-
+        self.logger.log("SYSTEM BOOT")
         terminal = Terminal(self)
         terminal.start()
 

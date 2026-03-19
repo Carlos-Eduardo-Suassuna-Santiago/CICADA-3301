@@ -5,6 +5,8 @@ import os
 class StegoCommand(BaseCommand):
 
     name = "stego"
+    description = "Steganography operations"
+    usage = "stego <operation> <args>"
 
     def __init__(self):
         self.engine = StegoEngine()

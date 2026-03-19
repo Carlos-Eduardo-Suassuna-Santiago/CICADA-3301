@@ -4,6 +4,8 @@ from security.cripto_engine import CryptoEngine
 class DecryptCommand(BaseCommand):
 
     name = "decrypt"
+    description = "Decrypt encrypted text"
+    usage = "decrypt <text>"
 
     def __init__(self):
         self.engine = CryptoEngine()

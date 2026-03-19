@@ -1,8 +1,14 @@
 from commands.base_command import BaseCommand
 
+class Colors:
+    RED = '\033[91m'
+    END = '\033[0m'
+
 class CatCommand(BaseCommand):
 
     name = "cat"
+    description = "Display file contents"
+    usage = "cat <file>"
 
     def execute(self, terminal, args):
 
@@ -15,7 +21,7 @@ class CatCommand(BaseCommand):
         content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
 
         if content is None:
-            print("file not found or permission denied")
+            print(f"{Colors.RED}file not found or permission denied{Colors.END}")
             return
 
         # pega o nó do arquivo no filesystem
@@ -31,4 +37,4 @@ class CatCommand(BaseCommand):
 
         else:
 
-            print("permission denied")
+            print(f"{Colors.RED}permission denied{Colors.END}")

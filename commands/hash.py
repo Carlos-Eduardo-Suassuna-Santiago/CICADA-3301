@@ -4,6 +4,8 @@ from security.hash_engine import HashEngine
 class HashCommand(BaseCommand):
 
     name = "hash"
+    description = "Compute hash of text"
+    usage = "hash <text>"
 
     def __init__(self):
         self.engine = HashEngine()

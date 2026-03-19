@@ -1,207 +1,79 @@
-2026-03-15 07:20:04.715312 : 
-System ready.
-
-2026-03-15 07:21:42.811124 : 
-System ready.
-
-2026-03-15 21:52:42.981060 : 
-System ready.
-
-2026-03-15 21:55:16.063232 : 
-System ready.
-
-2026-03-15 21:56:28.487369 : 
-System ready.
-
-2026-03-15 21:59:07.377394 : 
-System ready.
-
-2026-03-15 22:00:20.592807 : 
-System ready.
-
-2026-03-15 22:04:48.741837 : 
-System ready.
-
-2026-03-16 00:05:18.328033 : 
-System ready.
-
-2026-03-16 00:07:11.620575 : 
-System ready.
-
-2026-03-16 00:08:17.100290 : 
-System ready.
-
-2026-03-16 00:09:56.874393 : 
-System ready.
-
-2026-03-16 00:19:36.890279 : 
-System ready.
-
-2026-03-16 11:15:14.230985 : 
-System ready.
-
-2026-03-16 11:15:35.306708 : 
-System ready.
-
-2026-03-16 12:48:21.130214 : 
-System ready.
-
-2026-03-16 14:03:11.399524 : 
-System ready.
-
-2026-03-16 14:07:55.589495 : 
-System ready.
-
-2026-03-16 14:08:26.207888 : 
-System ready.
-
-2026-03-16 14:09:31.985126 : 
-System ready.
-
-2026-03-16 14:11:31.970384 : 
-System ready.
-
-2026-03-16 14:12:47.603019 : 
-System ready.
-
-2026-03-16 14:17:05.518245 : 
-System ready.
-
-2026-03-16 14:17:19.414920 : 
-System ready.
-
-2026-03-16 14:27:34.395938 : 
-System ready.
-
-2026-03-16 14:27:59.858910 : 
-System ready.
-
-2026-03-16 14:29:20.965694 : 
-System ready.
-
-2026-03-16 14:29:26.506355 : 
-System ready.
-
-2026-03-16 14:38:27.460866 : 
-System ready.
-
-2026-03-16 14:44:44.117039 : 
-System ready.
-
-2026-03-16 14:46:51.946026 : 
-System ready.
-
-2026-03-16 14:48:53.718752 : 
-System ready.
-
-2026-03-16 18:25:30.117657 : 
-System ready.
-
-2026-03-16 18:28:53.318843 : 
-System ready.
-
-2026-03-16 19:26:41.317704 : 
-System ready.
-
-2026-03-17 00:27:06.388832 : 
-System ready.
-
-2026-03-17 10:51:54.102667 : 
-System ready.
-
-2026-03-17 10:52:08.468627 : 
-System ready.
-
-2026-03-17 11:25:02.613775 : 
-System ready.
-
-2026-03-17 11:27:19.250123 : 
-System ready.
-
-2026-03-17 12:01:53.661251 : 
-System ready.
-
-2026-03-17 12:06:11.306486 : 
-System ready.
-
-2026-03-17 12:13:47.859857 : 
-System ready.
-
-2026-03-17 12:14:58.277512 : 
-System ready.
-
-2026-03-17 12:21:39.687697 : 
-System ready.
-
-2026-03-17 12:32:04.944248 : 
-System ready.
-
-2026-03-17 12:34:11.363313 : 
-System ready.
-
-2026-03-17 12:35:46.621628 : 
-System ready.
-
-2026-03-17 13:12:39.018163 : 
-System ready.
-
-2026-03-17 13:57:58.505214 : 
-System ready.
-
-2026-03-17 14:03:30.835307 : 
-System ready.
-
-2026-03-17 14:06:17.791502 : 
-System ready.
-
-2026-03-17 14:17:34.480923 : 
-System ready.
-
-2026-03-17 14:19:32.932439 : 
-System ready.
-
-2026-03-17 14:30:09.617113 : 
-System ready.
-
-2026-03-17 16:24:41.301746 : 
-System ready.
-
-2026-03-17 16:25:23.749294 : 
-System ready.
-
-2026-03-17 23:33:41.135835 : 
-System ready.
-
-2026-03-17 23:40:01.636824 : 
-System ready.
-
-2026-03-18 13:07:48.757613 : 
-System ready.
-
-2026-03-18 13:46:30.784277 : 
-System ready.
-
-2026-03-18 13:52:47.150461 : 
-System ready.
-
-2026-03-19 10:11:45.327835 : 
-System ready.
-
-2026-03-19 10:13:28.638903 : 
-System ready.
-
-2026-03-19 10:16:03.434075 : 
-System ready.
-
-2026-03-19 10:32:11.750324 : 
-System ready.
-
-2026-03-19 10:44:25.970499 : 
-System ready.
-
-2026-03-19 10:45:47.332949 : 
-System ready.
-
-2026-03-19 11:03:48.037685 : 
-System ready.
-
+[2026-03-19 14:02:47] SYSTEM BOOT
+[2026-03-19 14:02:54] LOGIN SUCCESS: guest
+[2026-03-19 14:07:54] SESSION TIMEOUT: guest
+[2026-03-19 14:15:02] SYSTEM BOOT
+[2026-03-19 14:15:11] LOGIN SUCCESS: guest
+[2026-03-19 14:15:15] COMMAND: guest executed 'passwd'
+[2026-03-19 14:15:29] PASSWORD CHANGE SUCCESS: guest
+[2026-03-19 14:15:33] COMMAND: guest executed 'clear'
+[2026-03-19 14:15:38] COMMAND: guest executed 'logout'
+[2026-03-19 14:15:38] LOGOUT: guest
+[2026-03-19 14:15:46] LOGIN FAILED: guest
+[2026-03-19 14:15:54] LOGIN SUCCESS: guest
+[2026-03-19 14:16:01] COMMAND: guest executed 'passwd'
+[2026-03-19 14:16:13] PASSWORD CHANGE SUCCESS: guest
+[2026-03-19 14:16:16] COMMAND: guest executed 'clear'
+[2026-03-19 14:16:18] COMMAND: guest executed 'exit'
+[2026-03-19 14:16:22] COMMAND: guest executed 'clear'
+[2026-03-19 14:16:29] COMMAND: guest executed 'shutdown'
+[2026-03-19 14:16:29] SYSTEM SHUTDOWN
+[2026-03-19 14:23:00] SYSTEM BOOT
+[2026-03-19 14:23:07] LOGIN SUCCESS: guest
+[2026-03-19 14:23:09] COMMAND: guest executed 'ls'
+[2026-03-19 14:23:12] COMMAND: guest executed 'clear'
+[2026-03-19 14:23:19] COMMAND: guest executed 'su root'
+[2026-03-19 14:23:23] USER SWITCH: guest -> root
+[2026-03-19 14:23:38] COMMAND: root executed 'su guest'
+[2026-03-19 14:23:43] USER SWITCH: root -> guest
+[2026-03-19 14:23:47] COMMAND: guest executed 'clear'
+[2026-03-19 14:28:47] SESSION TIMEOUT: guest
+[2026-03-19 14:35:35] LOGIN SUCCESS: guest
+[2026-03-19 14:35:43] COMMAND: guest executed 'help'
+[2026-03-19 14:36:03] COMMAND: guest executed 'shutdown'
+[2026-03-19 14:36:03] SYSTEM SHUTDOWN
+[2026-03-19 14:36:09] SYSTEM BOOT
+[2026-03-19 14:36:16] LOGIN SUCCESS: guest
+[2026-03-19 14:36:29] COMMAND: guest executed 'help'
+[2026-03-19 14:36:49] COMMAND: guest executed 'help pwd'
+[2026-03-19 14:36:57] COMMAND: guest executed 'clear'
+[2026-03-19 14:37:02] COMMAND: guest executed 'shutdown'
+[2026-03-19 14:37:02] SYSTEM SHUTDOWN
+[2026-03-19 14:47:49] SYSTEM BOOT
+[2026-03-19 14:47:54] LOGIN SUCCESS: guest
+[2026-03-19 14:47:56] COMMAND: guest executed 'ls'
+[2026-03-19 14:48:17] COMMAND: guest executed 'shutdown'
+[2026-03-19 14:48:17] SYSTEM SHUTDOWN
+[2026-03-19 14:55:49] SYSTEM BOOT
+[2026-03-19 14:55:58] LOGIN SUCCESS: guest
+[2026-03-19 14:56:06] COMMAND: guest executed 'ls'
+[2026-03-19 14:56:27] COMMAND: guest executed 'shutdown '
+[2026-03-19 14:56:27] SYSTEM SHUTDOWN
+[2026-03-19 14:59:48] SYSTEM BOOT
+[2026-03-19 14:59:54] LOGIN SUCCESS: guest
+[2026-03-19 15:04:54] SESSION TIMEOUT: guest
+[2026-03-19 17:00:22] SYSTEM BOOT
+[2026-03-19 17:00:40] LOGIN SUCCESS: guest
+[2026-03-19 17:02:02] COMMAND: guest executed 'who'
+[2026-03-19 17:02:02] WHO: guest
+[2026-03-19 17:02:37] COMMAND: guest executed 'clear'
+[2026-03-19 17:03:43] COMMAND: guest executed 'help who'
+[2026-03-19 17:03:51] COMMAND: guest executed 'clear'
+[2026-03-19 17:04:57] COMMAND: guest executed 'cls'
+[2026-03-19 17:05:01] COMMAND: guest executed 'clear'
+[2026-03-19 17:08:35] COMMAND: guest executed 'shutdown'
+[2026-03-19 17:08:35] SYSTEM SHUTDOWN
+[2026-03-19 17:09:00] SYSTEM BOOT
+[2026-03-19 17:09:48] LOGIN SUCCESS: guest
+[2026-03-19 17:14:48] SESSION TIMEOUT: guest
+[2026-03-19 17:20:35] LOGIN FAILED: guest
+[2026-03-19 17:20:42] LOGIN SUCCESS: guest
+[2026-03-19 17:20:52] COMMAND: guest executed 'ls'
+[2026-03-19 17:21:12] COMMAND: guest executed 'cat message.txt'
+[2026-03-19 17:21:19] COMMAND: guest executed 'clear'
+[2026-03-19 17:22:12] COMMAND: guest executed 'clear'
+[2026-03-19 17:27:12] SESSION TIMEOUT: guest
+[2026-03-19 17:28:09] COMMAND: guest executed 'c'
+[2026-03-19 17:28:16] LOGIN FAILED: clear
+[2026-03-19 17:28:22] LOGIN SUCCESS: guest
+[2026-03-19 17:28:27] COMMAND: guest executed 'shutdown'
+[2026-03-19 17:28:27] SYSTEM SHUTDOWN

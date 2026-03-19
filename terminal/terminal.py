@@ -1,3 +1,18 @@
+import os
+import getpass
+import signal
+import time
+
+class Colors:
+    GREEN = '\033[92m'
+    BLUE = '\033[94m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    CYAN = '\033[96m'
+    MAGENTA = '\033[95m'
+    WHITE = '\033[97m'
+    END = '\033[0m'
+
 from terminal.parser import CommandParser
 from commands.help import HelpCommand
 from commands.ls import LsCommand
@@ -12,6 +27,10 @@ from commands.decode import DecodeCommand
 from commands.hash import HashCommand
 from commands.stego import StegoCommand
 from commands.decrypt import DecryptCommand
+from commands.shutdown import ShutdownCommand
+from commands.passwd import PasswdCommand
+from commands.su import SuCommand
+from commands.who import WhoCommand
 from commands.submit import SubmitCommand
 from commands.history import HistoryCommand
 from commands.sudo import SudoCommand
@@ -26,9 +45,12 @@ class Terminal:
         self.vfs = kernel.vfs
         self.parser = CommandParser(kernel)
         self.auth = kernel.user_manager
-        self.current_user = "guest"
         self.current_dir = "/"
         self.running = True
+        self.exiting = False
+        self.logger = kernel.logger
+        self.timeout = 300  # 5 minutes
+        self.session_start = None
         self.commands = {
             "ls": LsCommand(),
             "cd": CdCommand(),
@@ -37,7 +59,11 @@ class Terminal:
             "help": HelpCommand(),
             "login": LoginCommand(),
             "logout": LogoutCommand(),
+            "passwd": PasswdCommand(),
+            "su": SuCommand(),
+            "shutdown": ShutdownCommand(),
             "whoami": WhoamiCommand(),
+            "who": WhoCommand(),
             "clear": ClearCommand(),
             "decode": DecodeCommand(),
             "hash": HashCommand(),
@@ -48,14 +74,84 @@ class Terminal:
             "sudo": SudoCommand(),
         }
 
+    def login_screen(self):
+
+        while True:
+
+            self.clear_screen()
+            self._print_banner()
+
+            print("\n=== LOGIN ===")
+
+            username = input("Username: ")
+            password = getpass.getpass("Password: ")
+
+            if self.auth.login(username, password):
+
+                self.vfs.current_path = f"/home/{username}"
+                self.session_start = time.time()
+                self.logger.log_login(username, True)
+                print(f"{Colors.GREEN}Login successful!{Colors.END}")
+                print("Press Enter to continue...")
+                return
+
+            else:
+                self.logger.log_login(username, False)
+                print(f"{Colors.RED}Invalid credentials.{Colors.END}")
+                print("Press Enter to try again...")
+
+    def _print_banner(self):
+
+        print(f"{Colors.CYAN}{'=' * 40}{Colors.END}")
+        print(f"{Colors.GREEN}{self.kernel.system_name} v {self.kernel.version}{Colors.END}")
+        print(f"{Colors.YELLOW}Cyber Security Simulation Environment{Colors.END}")
+        print(f"{Colors.CYAN}{'=' * 40}{Colors.END}")
+        print("\n")
+
+    def clear_screen(self):
+
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+    def run_session(self):
+
+        self.running = True
+
+        def timeout_handler(signum, frame):
+
+            print(f"\n{Colors.YELLOW}Session timed out due to inactivity.{Colors.END}")
+            self.logger.log(f"SESSION TIMEOUT: {self.auth.get_current_user()}")
+            self.running = False
+
+        signal.signal(signal.SIGALRM, timeout_handler)
+
+        self.clear_screen()
+        self._print_banner()
+
+        while self.running and not self.exiting:
+
+            signal.alarm(self.timeout)
+
+            try:
+
+                prompt = f"{Colors.GREEN}{self.auth.get_current_user()}{Colors.END}@{Colors.BLUE}{self.kernel.system_name}{Colors.END}:{Colors.CYAN}{self.vfs.get_pwd()}{Colors.END}$ "
+                command = input(prompt)
+                signal.alarm(0)  # cancel alarm
+
+                self.history.append(command)
+                self.execute(command)
+
+            except KeyboardInterrupt:
+
+                # timeout occurred, running already set to False
+                pass
+        
+
     def start(self):
 
-        while self.running:
+        while not self.exiting:
 
-            prompt = f"{self.auth.get_current_user()}@{self.kernel.system_name}:{self.vfs.get_pwd()}$ "
-            command = input(prompt)
-            self.execute(command)
-            self.history.append(command)
+            self.login_screen()
+            self.run_session()
     
     def execute(self, command):
         
@@ -63,13 +159,11 @@ class Terminal:
 
        if cmd == "":
            return
-       if cmd == "exit":
-          self.running = False
-          return
+       self.logger.log_command(self.auth.get_current_user(), command)
        if cmd in self.commands:
           self.commands[cmd].execute(self, args) 
        else:
-          print(f"Command not found: {cmd}")
+          print(f"{Colors.RED}Command not found: {cmd}{Colors.END}")
 
     def help(self):
 

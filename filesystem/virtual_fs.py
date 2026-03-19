@@ -39,7 +39,7 @@ class VirtualFileSystem:
         node = self._get_node(parts)
 
         if node and node["type"] == "dir" and self.has_permission(node, user):
-            return [f for f in node["content"].keys() if self.has_permission(node["content"][f], user)]
+            return [(f, node["content"][f]["type"]) for f in node["content"].keys() if self.has_permission(node["content"][f], user)]
         return []
     
     def change_dir(self, path, user):

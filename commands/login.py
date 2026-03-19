@@ -4,6 +4,8 @@ import getpass
 class LoginCommand(BaseCommand):
 
     name = "login"
+    description = "Login to the system"
+    usage = "login"
 
     def execute(self, terminal, args):
 
