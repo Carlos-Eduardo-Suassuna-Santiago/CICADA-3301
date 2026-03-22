@@ -81,3 +81,50 @@
 [2026-03-19 22:13:59] LOGIN SUCCESS: guest
 [2026-03-19 22:14:07] COMMAND: guest executed 'shutdown'
 [2026-03-19 22:14:07] SYSTEM SHUTDOWN
+[2026-03-22 04:14:25] SYSTEM BOOT
+[2026-03-22 04:14:47] LOGIN SUCCESS: guest
+[2026-03-22 04:15:35] SYSTEM BOOT
+[2026-03-22 04:15:56] LOGIN SUCCESS: guest
+[2026-03-22 04:16:20] COMMAND: guest executed 'cat readme.txt '
+[2026-03-22 04:17:19] COMMAND: guest executed 'cat readme.txt shutdown'
+[2026-03-22 04:17:37] COMMAND: guest executed 'as'
+[2026-03-22 04:17:52] COMMAND: guest executed 'shutdown'
+[2026-03-22 04:17:52] SYSTEM SHUTDOWN
+[2026-03-22 18:18:15] SYSTEM BOOT
+[2026-03-22 18:18:28] LOGIN SUCCESS: guest
+[2026-03-22 18:19:40] COMMAND: guest executed 'clear'
+[2026-03-22 18:19:52] COMMAND: guest executed 'decode'
+[2026-03-22 18:19:55] COMMAND: guest executed 'decodeclear'
+[2026-03-22 18:21:23] SYSTEM BOOT
+[2026-03-22 18:21:31] LOGIN SUCCESS: guest
+[2026-03-22 18:21:34] COMMAND: guest executed 'ls'
+[2026-03-22 18:21:42] COMMAND: guest executed 'pwd'
+[2026-03-22 18:21:51] COMMAND: guest executed 'history'
+[2026-03-22 18:22:16] SYSTEM BOOT
+[2026-03-22 18:22:22] LOGIN SUCCESS: guest
+[2026-03-22 18:22:25] COMMAND: guest executed 'ls'
+[2026-03-22 18:22:33] COMMAND: guest executed 'pwd'
+[2026-03-22 18:22:52] COMMAND: guest executed 'history'
+[2026-03-22 18:23:02] COMMAND: guest executed 'clear'
+[2026-03-22 18:24:31] COMMAND: guest executed 'shutdown'
+[2026-03-22 18:24:31] SYSTEM SHUTDOWN
+[2026-03-22 18:26:17] SYSTEM BOOT
+[2026-03-22 18:31:51] SYSTEM BOOT
+[2026-03-22 18:31:57] LOGIN SUCCESS: guest
+[2026-03-22 18:32:01] COMMAND: guest executed 'ls'
+[2026-03-22 18:32:06] COMMAND: guest executed 'pwd'
+[2026-03-22 18:32:10] COMMAND: guest executed 'history'
+[2026-03-22 18:32:25] COMMAND: guest executed 'ls pwd'
+[2026-03-22 18:32:46] COMMAND: guest executed 'clear'
+[2026-03-22 18:32:52] COMMAND: guest executed 'shutdown '
+[2026-03-22 18:32:52] SYSTEM SHUTDOWN
+[2026-03-22 18:34:12] SYSTEM BOOT
+[2026-03-22 18:34:17] LOGIN SUCCESS: guest
+[2026-03-22 18:34:21] COMMAND: guest executed 'cd /'
+[2026-03-22 18:34:22] COMMAND: guest executed 'ls'
+[2026-03-22 18:34:43] COMMAND: guest executed 'cd home'
+[2026-03-22 18:34:55] COMMAND: guest executed 'cd guest'
+[2026-03-22 18:34:57] COMMAND: guest executed 'ls'
+[2026-03-22 18:34:59] COMMAND: guest executed 'clear'
+[2026-03-22 18:35:04] COMMAND: guest executed 'shutdown'
+[2026-03-22 18:35:04] SYSTEM SHUTDOWN

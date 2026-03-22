@@ -14,6 +14,7 @@ class Colors:
     END = '\033[0m'
 
 from terminal.parser import CommandParser
+from terminal.input_handler import InputHandler
 from commands.help import HelpCommand
 from commands.ls import LsCommand
 from commands.cd import CdCommand
@@ -40,6 +41,7 @@ class Terminal:
 
     def __init__(self, kernel):
 
+        self.input_handler = InputHandler(self)
         self.history = []
         self.kernel = kernel
         self.vfs = kernel.vfs
@@ -134,11 +136,13 @@ class Terminal:
             try:
 
                 prompt = f"{Colors.GREEN}{self.auth.get_current_user()}{Colors.END}@{Colors.BLUE}{self.kernel.system_name}{Colors.END}:{Colors.CYAN}{self.vfs.get_pwd()}{Colors.END}$ "
-                command = input(prompt)
+                command = self.input_handler.process_input(prompt)
                 signal.alarm(0)  # cancel alarm
 
                 self.history.append(command)
                 self.execute(command)
+                self.input_handler.buff = []
+                self.input_handler.cursor = 0
 
             except KeyboardInterrupt:
 
