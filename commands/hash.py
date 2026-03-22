@@ -7,6 +7,8 @@ class HashCommand(BaseCommand):
     description = "Compute hash of text"
     usage = "hash <text>"
 
+    autocomplete = { 1: ["generate", "analyze"]}
+
     def __init__(self):
         self.engine = HashEngine()
 

@@ -8,6 +8,8 @@ class StegoCommand(BaseCommand):
     description = "Steganography operations"
     usage = "stego <operation> <args>"
 
+    autocomplete = { 1: ["extract"]}
+
     def __init__(self):
         self.engine = StegoEngine()
 

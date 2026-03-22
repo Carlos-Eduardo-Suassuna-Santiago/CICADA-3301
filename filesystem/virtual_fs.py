@@ -113,3 +113,23 @@ class VirtualFileSystem:
             "owner": owner,
             "perm": perm,
         }
+
+    def list_dir_full(self, path_parts):
+
+        node = self._get_node(path_parts)
+
+        if node and node["type"] == "dir":
+            return node["content"].keys()
+        return []
+
+    def resolve_partial(self, path):
+
+        if path.startswith("/"):
+
+            parts = path.strip("/").split("/")
+        
+        else:
+
+            current = self.current_path.strip("/").split("/") if self.current_path != "/" else []
+            parts = current + path.split("/")
+            return [p for p in parts if p]

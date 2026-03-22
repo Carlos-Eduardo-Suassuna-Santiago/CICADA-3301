@@ -105,7 +105,7 @@ else:
                 
                 #TAB
                 elif ch == b"\t":
-                    self.auto_complete()
+                    self._autocomplete()
 
                 #CARACTERE NORMAL
                 else:
@@ -153,20 +153,114 @@ else:
             self.buffer = list(self.terminal.history[self.history_index])
             self.cursor = len(self.buffer)
 
-        def auto_complete(self):
+        def _autocomplete(self):
 
             text = ''.join(self.buffer)
+            tokens = text.split()
 
-            matches = [cmd for cmd in self.terminal.commands.keys() if cmd.startswith(text)]
+            # =========================
+            # AUTOCOMPLETE DE COMANDO
+            # =========================
+            if len(tokens) == 0:
+                return
+
+            if len(tokens) == 1 and not text.endswith(" "):
+
+                partial = tokens[0]
+
+                matches = [
+                    cmd for cmd in self.terminal.commands.keys()
+                    if cmd.startswith(partial)
+                ]
+
+                self._apply_match(matches, partial)
+                return
+
+            # =========================
+            # AUTOCOMPLETE CONTEXTUAL
+            # =========================
+            command_name = tokens[0]
+            command = self.terminal.commands.get(command_name)
+
+            arg_index = len(tokens) - 1
+
+            # se terminou com espaço → novo argumento
+            if text.endswith(" "):
+                arg_index += 1
+                partial = ""
+            else:
+                partial = tokens[-1]
+
+            # =========================
+            # CONTEXTO DO COMANDO
+            # =========================
+            if command and hasattr(command, "autocomplete"):
+
+                options = command.autocomplete.get(arg_index)
+
+                if options:
+
+                    matches = [opt for opt in options if opt.startswith(partial)]
+
+                    self._apply_path_match(matches, tokens, base_path=None)
+                    return
+
+            # =========================
+            # AUTOCOMPLETE DE PATH
+            # =========================
+            self._autocomplete_path(tokens, partial)
+        
+        def _autocomplete_path(self, tokens, partial):
+
+            vfs = self.terminal.vfs
+
+            if "/" in partial:
+                base_path, partial_name = partial.rsplit("/", 1)
+            else:
+                base_path = ""
+                partial_name = partial
+
+            path_parts = vfs.resolve_partial(base_path)
+
+            node = vfs._get_node(path_parts)
+
+            if not node or node ["type"] != "dir":
+                return
+            
+            matches = []
+
+            for name, iten in node["content"].items():
+
+                if name.startswith(partial_name):
+
+                    if iten["type"] == "dir":
+                        matches.append(name + "/")
+                    else:
+                        matches.append(name)
+
+            self._apply_path_match(matches, tokens, base_path)
+            self._render("")
+
+
+        def _apply_path_match(self, matches, tokens, base_path):
 
             if len(matches) == 1:
+                
+                match = matches[0]
 
-                self.buffer = list(matches[0])
-                self.cursor = len(self.buffer)
-            
-            elif len(matches) == 1:
+                if base_path:
 
-                self.buffer = list(matches[0])
+                    new_token = base_path + "/" + match
+
+                else:
+
+                    new_token = match
+
+                tokens[-1] = new_token
+
+                new_text = " ".join(tokens)
+
+                self.buffer = list(new_text)
                 self.cursor = len(self.buffer)
 
             elif len(matches) > 1:
@@ -175,6 +269,17 @@ else:
                 for m in matches:
                     print(m)
 
-                input("\n Press ENTER to continue...")
+                input("\nPress Enter...")
 
-            self._render("")
+        def _print_matches(self, matches):
+
+            print("\n")
+
+            for m in matches:
+
+                if m.endswith("/"):
+                    print(f"[DIR] {m}")
+                else:
+                    print(f"[FILE] {m}")
+                
+            input("\nPress Enter...") 

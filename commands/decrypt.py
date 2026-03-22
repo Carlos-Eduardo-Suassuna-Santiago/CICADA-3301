@@ -7,6 +7,8 @@ class DecryptCommand(BaseCommand):
     description = "Decrypt encrypted text"
     usage = "decrypt <text>"
 
+    autocomplete = { 1: ["cesar", "vigenere"]}
+
     def __init__(self):
         self.engine = CryptoEngine()
 
