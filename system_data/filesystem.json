@@ -4,69 +4,152 @@
     "owner": "root",
     "perm": "755",
     "content": {
+
+      "bin": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {}
+      },
+
+      "etc": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "passwd": {
+            "type": "file",
+            "owner": "root",
+            "perm": "644",
+            "content": "root:x:0:0:root:/root:/bin/bash\nguest:x:1000:1000::/home/guest:/bin/bash"
+          }
+
+        }
+      },
+
       "home": {
         "type": "dir",
         "owner": "root",
         "perm": "755",
         "content": {
+
           "guest": {
             "type": "dir",
             "owner": "guest",
             "perm": "755",
             "content": {
+
               "readme.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "Welcome investigator."
               },
+
               "message.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "SGVsbG8gQ3liZXIgQ3Rm"
               },
+
               "password.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "password123"
               },
+
               "hash.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
               },
+
               "secret_caesar.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "khoor"
               },
+
               "secret_vigenere.txt": {
                 "type": "file",
                 "owner": "guest",
                 "perm": "644",
                 "content": "rijvs"
+              },
+
+              ".hidden_flag": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "600",
+                "content": "flag{hidden_in_plain_sight}"
               }
+
             }
           }
+
         }
       },
+
       "root": {
         "type": "dir",
         "owner": "root",
         "perm": "700",
         "content": {
+
           "secret.txt": {
             "type": "file",
             "owner": "root",
             "perm": "600",
-            "content": "Top secret data"
+            "content": "flag{root_access_required}"
           }
+
         }
+      },
+
+      "var": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "log": {
+            "type": "dir",
+            "owner": "root",
+            "perm": "755",
+            "content": {
+
+              "auth.log": {
+                "type": "file",
+                "owner": "root",
+                "perm": "644",
+                "content": "login attempt: guest\nlogin success: guest"
+              },
+
+              "system.log": {
+                "type": "file",
+                "owner": "root",
+                "perm": "644",
+                "content": "system boot complete"
+              }
+
+            }
+          }
+
+        }
+      },
+
+      "tmp": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "777",
+        "content": {}
       }
+
     }
   }
 }
