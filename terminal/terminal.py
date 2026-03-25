@@ -13,6 +13,7 @@ class Colors:
     WHITE = '\033[97m'
     END = '\033[0m'
 
+from system_data.process_manager import ProcessManager
 from terminal.parser import CommandParser
 from terminal.input_handler import InputHandler
 from commands.help import HelpCommand
@@ -35,12 +36,15 @@ from commands.who import WhoCommand
 from commands.submit import SubmitCommand
 from commands.history import HistoryCommand
 from commands.sudo import SudoCommand
+from commands.ps import PsCommand
+from commands.logread import LogreadCommand
 
 
 class Terminal:
 
     def __init__(self, kernel):
 
+        self.process_manager = ProcessManager()
         self.input_handler = InputHandler(self)
         self.history = []
         self.kernel = kernel
@@ -74,6 +78,8 @@ class Terminal:
             "submit": SubmitCommand(),
             "history": HistoryCommand(),
             "sudo": SudoCommand(),
+            "ps": PsCommand(),
+            "logread": LogreadCommand(),
         }
 
     def login_screen(self):

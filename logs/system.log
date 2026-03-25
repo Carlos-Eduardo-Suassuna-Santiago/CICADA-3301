@@ -170,3 +170,16 @@
 [2026-03-23 16:06:48] COMMAND: guest executed 'clear'
 [2026-03-23 16:07:04] COMMAND: guest executed 'shutdown'
 [2026-03-23 16:07:04] SYSTEM SHUTDOWN
+[2026-03-25 14:57:07] SYSTEM BOOT
+[2026-03-25 14:57:13] LOGIN SUCCESS: guest
+[2026-03-25 14:57:17] COMMAND: guest executed 'logread'
+[2026-03-25 14:57:44] COMMAND: guest executed 'clear'
+[2026-03-25 15:02:44] SESSION TIMEOUT: guest
+[2026-03-25 15:10:45] LOGIN FAILED: guest 
+[2026-03-25 15:10:54] LOGIN SUCCESS: guest
+[2026-03-25 15:11:07] COMMAND: guest executed 'logread login'
+[2026-03-25 15:11:15] COMMAND: guest executed 'logread 5'
+[2026-03-25 15:11:25] COMMAND: guest executed 'clear'
+[2026-03-25 15:15:21] COMMAND: guest executed 'logread command'
+[2026-03-25 15:15:36] COMMAND: guest executed 'clear'
+[2026-03-25 15:20:36] SESSION TIMEOUT: guest
