@@ -21,4 +21,4 @@ class ProcessManager:
 
     def list_process(self):
         
-        return self.process
+        return self.processes

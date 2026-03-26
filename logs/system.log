@@ -183,3 +183,36 @@
 [2026-03-25 15:15:21] COMMAND: guest executed 'logread command'
 [2026-03-25 15:15:36] COMMAND: guest executed 'clear'
 [2026-03-25 15:20:36] SESSION TIMEOUT: guest
+[2026-03-26 00:50:38] SYSTEM BOOT
+[2026-03-26 00:50:44] LOGIN FAILED: login
+[2026-03-26 00:50:49] LOGIN SUCCESS: guest
+[2026-03-26 00:50:51] COMMAND: guest executed 'ls'
+[2026-03-26 00:51:07] COMMAND: guest executed 'logout'
+[2026-03-26 00:51:07] LOGOUT: guest
+[2026-03-26 00:51:41] LOGIN SUCCESS: root
+[2026-03-26 00:51:42] COMMAND: root executed 'ls'
+[2026-03-26 00:53:06] COMMAND: root executed 'su guest'
+[2026-03-26 00:53:10] USER SWITCH: root -> guest
+[2026-03-26 00:53:12] COMMAND: guest executed 'ls'
+[2026-03-26 00:53:38] COMMAND: guest executed 'sudo cat secret.txt'
+[2026-03-26 00:53:53] COMMAND: guest executed 'logout'
+[2026-03-26 00:53:53] LOGOUT: guest
+[2026-03-26 00:54:03] LOGIN SUCCESS: root
+[2026-03-26 00:54:05] COMMAND: root executed 'ls'
+[2026-03-26 00:54:51] COMMAND: root executed 'clear'
+[2026-03-26 00:54:55] COMMAND: root executed 'logout'
+[2026-03-26 00:54:55] LOGOUT: root
+[2026-03-26 00:55:04] LOGIN SUCCESS: guest
+[2026-03-26 00:55:13] COMMAND: guest executed 'ps'
+[2026-03-26 00:56:18] SYSTEM BOOT
+[2026-03-26 00:56:24] LOGIN SUCCESS: guest
+[2026-03-26 00:56:31] COMMAND: guest executed 'logread'
+[2026-03-26 00:56:34] COMMAND: guest executed 'clear'
+[2026-03-26 00:56:38] COMMAND: guest executed 'ps'
+[2026-03-26 00:58:30] SYSTEM BOOT
+[2026-03-26 00:58:36] LOGIN SUCCESS: guest
+[2026-03-26 00:58:39] COMMAND: guest executed 'ps'
+[2026-03-26 00:59:43] COMMAND: guest executed 'clear'
+[2026-03-26 00:59:49] COMMAND: guest executed 'shutdowm'
+[2026-03-26 00:59:53] COMMAND: guest executed 'shutdown'
+[2026-03-26 00:59:53] SYSTEM SHUTDOWN
