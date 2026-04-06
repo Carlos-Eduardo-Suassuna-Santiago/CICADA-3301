@@ -216,3 +216,24 @@
 [2026-03-26 00:59:49] COMMAND: guest executed 'shutdowm'
 [2026-03-26 00:59:53] COMMAND: guest executed 'shutdown'
 [2026-03-26 00:59:53] SYSTEM SHUTDOWN
+[2026-03-30 11:07:18] SYSTEM BOOT
+[2026-03-30 11:07:28] LOGIN SUCCESS: guest
+[2026-03-30 11:08:05] COMMAND: guest executed 'ls'
+[2026-03-30 11:08:21] COMMAND: guest executed 'exit'
+[2026-03-30 11:08:23] COMMAND: guest executed 'ls'
+[2026-03-30 11:08:25] COMMAND: guest executed 'clear'
+[2026-03-30 11:08:46] COMMAND: guest executed 'logout'
+[2026-03-30 11:08:46] LOGOUT: guest
+[2026-03-30 11:08:55] LOGIN SUCCESS: guest
+[2026-03-30 11:09:00] COMMAND: guest executed 'shutdown'
+[2026-03-30 11:09:00] SYSTEM SHUTDOWN
+[2026-04-01 18:19:12] SYSTEM BOOT
+[2026-04-01 18:19:27] LOGIN FAILED: 
+[2026-04-01 18:19:32] LOGIN SUCCESS: guest
+[2026-04-01 18:19:37] COMMAND: guest executed 'ls'
+[2026-04-01 18:20:43] COMMAND: guest executed 'cat message.txt'
+[2026-04-01 18:20:52] COMMAND: guest executed 'su root'
+[2026-04-01 18:20:55] USER SWITCH: guest -> root
+[2026-04-01 18:21:02] COMMAND: root executed 'ls'
+[2026-04-01 18:21:38] COMMAND: root executed 'shutdown'
+[2026-04-01 18:21:38] SYSTEM SHUTDOWN
