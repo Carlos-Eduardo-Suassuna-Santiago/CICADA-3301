@@ -2,21 +2,206 @@
   "challenges": [
     {
       "id": 1,
-      "name": "Base64",
-      "description": "Decode the message in message.txt",
-      "flag": "flag{hello_cyber_ctf}",
+      "name": "Mensagem Codificada",
+      "description": "Decode o texto Base64 em message.txt para encontrar a pista do próximo desafio.",
+      "category": "encoding",
+      "difficulty": "easy",
+      "points": 50,
+      "flag": "flag{hello_investigator}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "O arquivo message.txt está em Base64.",
+        "Use o comando 'decode message.txt'.",
+        "A mensagem traz a pista para o próximo arquivo."
+      ],
+      "time_limit": 300,
       "on_start": [
         {
           "action": "create_file",
           "path": "/home/guest/message.txt",
-          "content": "SGVsbG8gQ3liZXIgQ3Rm"
+          "content": "SGVsbG8gSW52ZXN0aWdhdG9y"
         }
       ],
       "on_complete": [
         {
           "action": "create_file",
-          "path": "/home/guest/next.txt",
-          "content": "khoor"
+          "path": "/home/guest/letter.txt",
+          "content": "Brx pdB irxqg wkh qhaw foxh"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Cifra de César",
+      "description": "Decifre a mensagem em letter.txt usando uma cifra de César para encontrar a próxima pista.",
+      "category": "cryptography",
+      "difficulty": "easy",
+      "points": 75,
+      "flag": "flag{caesar_clue}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "A mensagem é uma cifra de César.",
+        "Use o comando 'decrypt letter.txt'.",
+        "Tente deslocamentos até encontrar um texto legível."
+      ],
+      "time_limit": 300,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/letter.txt",
+          "content": "Brx pdB irxqg wkh qhaw foxh"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/password.hash",
+          "content": "ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Hash Misterioso",
+      "description": "Identifique o algoritmo de hash em password.hash e descubra a senha correspondente.",
+      "category": "hash",
+      "difficulty": "medium",
+      "points": 100,
+      "flag": "flag{password123}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "O arquivo contém um hash SHA256.",
+        "Use 'hash analyze password.hash' para identificar o algoritmo.",
+        "Depois use 'hash generate <texto>' para testar senhas."
+      ],
+      "time_limit": 600,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/password.hash",
+          "content": "ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/image.png",
+          "content": "STEGOMSG:Check the system logs"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Arquivo Oculto",
+      "description": "Extraia a mensagem escondida em image.png usando esteganografia.",
+      "category": "steganography",
+      "difficulty": "medium",
+      "points": 125,
+      "flag": "flag{check_the_logs}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "A imagem contém uma mensagem oculta.",
+        "Use 'stego extract image.png'.",
+        "O texto oculto indica que você deve analisar logs."
+      ],
+      "time_limit": 900,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/home/guest/image.png",
+          "content": "STEGOMSG:Check the system logs"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/var/log/system.log",
+          "content": "failed login root\nfailed login root\nsuccessful login analyst"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Análise de Logs",
+      "description": "Use o log do sistema para encontrar o diretório escondido e a próxima ferramenta.",
+      "category": "forensics",
+      "difficulty": "hard",
+      "points": 150,
+      "flag": "flag{log_analysis_success}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "O arquivo /var/log/system.log contém eventos suspeitos.",
+        "Use 'analyze system.log'.",
+        "A análise revela que o próximo passo está em /usr/bin."
+      ],
+      "time_limit": 1200,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/var/log/system.log",
+          "content": "failed login root\nfailed login root\nsuccessful login analyst"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/usr/bin/backup.sh",
+          "content": "#!/bin/bash\necho 'Running backup...'\n"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Escalonamento de Privilégios",
+      "description": "Explore o script vulnerável backup.sh para obter acesso root.",
+      "category": "privilege escalation",
+      "difficulty": "hard",
+      "points": 175,
+      "flag": "flag{root_access_granted}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "O script backup.sh é vulnerável.",
+        "Use 'sudo exploit backup.sh'.",
+        "Se você ganhar root, poderá acessar /root/final.key."
+      ],
+      "time_limit": 1500,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/usr/bin/backup.sh",
+          "content": "#!/bin/bash\necho 'Running backup...'\n"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "A Camada Final",
+      "description": "Use todas as ferramentas aprendidas para descriptografar o arquivo final e completar o CTF.",
+      "category": "final",
+      "difficulty": "hard",
+      "points": 200,
+      "flag": "flag{welcome_to_the_inner_circle}",
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual"],
+      "hints": [
+        "O arquivo final está em /root/final.key.",
+        "Use 'decode /root/final.key'.",
+        "O conteúdo está em Base64 dentro de um wrapper PEM."
+      ],
+      "time_limit": 1800,
+      "on_start": [
+        {
+          "action": "create_file",
+          "path": "/root/final.key",
+          "content": "-----BEGIN MESSAGE-----\nV2VsY29tZSB0byB0aGUgaW5uZXIgY2lyY2xlLg==\n-----END MESSAGE-----\n",
+          "owner": "root",
+          "perm": "600"
+        }
+      ],
+      "on_complete": [
+        {
+          "action": "create_file",
+          "path": "/root/congratulations.txt",
+          "content": "Welcome to the inner circle."
         }
       ]
     }

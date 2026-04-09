@@ -237,3 +237,97 @@
 [2026-04-01 18:21:02] COMMAND: root executed 'ls'
 [2026-04-01 18:21:38] COMMAND: root executed 'shutdown'
 [2026-04-01 18:21:38] SYSTEM SHUTDOWN
+[2026-04-09 12:58:18] SYSTEM BOOT
+[2026-04-09 12:58:24] LOGIN SUCCESS: guest
+[2026-04-09 12:58:27] COMMAND: guest executed 'ls'
+[2026-04-09 12:58:54] COMMAND: guest executed 'decode message.txt'
+[2026-04-09 12:59:22] SYSTEM BOOT
+[2026-04-09 12:59:26] LOGIN SUCCESS: guest
+[2026-04-09 12:59:28] COMMAND: guest executed 'manual'
+[2026-04-09 13:00:25] COMMAND: guest executed 'shutdown'
+[2026-04-09 13:00:30] COMMAND: guest executed 'shutdown'
+[2026-04-09 13:00:30] SYSTEM SHUTDOWN
+[2026-04-09 13:00:37] SYSTEM BOOT
+[2026-04-09 13:00:41] LOGIN SUCCESS: guest
+[2026-04-09 13:00:46] COMMAND: guest executed 'manual'
+[2026-04-09 13:01:52] COMMAND: guest executed 'ls'
+[2026-04-09 13:02:39] COMMAND: guest executed 'decrypt caesar secret_caesar.txt'
+[2026-04-09 13:04:10] SYSTEM BOOT
+[2026-04-09 13:04:15] LOGIN SUCCESS: guest
+[2026-04-09 13:04:18] COMMAND: guest executed 'ls'
+[2026-04-09 13:04:35] COMMAND: guest executed 'decrypt caesar secret_caesar.txt'
+[2026-04-09 13:04:56] COMMAND: guest executed 'help decrypt'
+[2026-04-09 13:05:22] COMMAND: guest executed 'decrypt secret_caesar.txt'
+[2026-04-09 13:05:42] COMMAND: guest executed 'decrypt caesar secret_caesar.txt 3'
+[2026-04-09 13:06:01] COMMAND: guest executed 'decrypt caesar secret_caesar.txt 1'
+[2026-04-09 13:06:10] COMMAND: guest executed 'decrypt caesar secret_caesar.txt 2'
+[2026-04-09 13:06:18] COMMAND: guest executed 'decrypt caesar secret_caesar.txt 3'
+[2026-04-09 13:06:30] COMMAND: guest executed 'clear'
+[2026-04-09 13:06:58] COMMAND: guest executed 'decrypt caesar /home/guest/secret_caesar.txt 3'
+[2026-04-09 13:07:01] COMMAND: guest executed 'clear'
+[2026-04-09 13:07:10] COMMAND: guest executed 'clear'
+[2026-04-09 13:12:10] SESSION TIMEOUT: guest
+[2026-04-09 13:27:28] SYSTEM BOOT
+[2026-04-09 13:27:35] LOGIN SUCCESS: guest
+[2026-04-09 13:27:37] COMMAND: guest executed 'ls'
+[2026-04-09 13:32:37] SESSION TIMEOUT: guest
+[2026-04-09 13:47:45] SYSTEM BOOT
+[2026-04-09 13:47:53] LOGIN SUCCESS: guest
+[2026-04-09 13:47:56] COMMAND: guest executed 'ls'
+[2026-04-09 13:48:07] COMMAND: guest executed 'cat message.txt'
+[2026-04-09 13:48:39] COMMAND: guest executed 'decode message.txt'
+[2026-04-09 13:48:58] COMMAND: guest executed 'submit flag{hello_investigator}'
+[2026-04-09 13:50:47] COMMAND: guest executed 'ls'
+[2026-04-09 13:50:51] COMMAND: guest executed 'clear'
+[2026-04-09 13:50:53] COMMAND: guest executed 'ls'
+[2026-04-09 13:51:07] COMMAND: guest executed 'cat progress.txt'
+[2026-04-09 13:52:49] COMMAND: guest executed 'clear'
+[2026-04-09 13:52:54] COMMAND: guest executed 'shutdown'
+[2026-04-09 13:53:08] COMMAND: guest executed 'shutdown'
+[2026-04-09 13:53:14] COMMAND: guest executed 'clear'
+[2026-04-09 13:53:26] COMMAND: guest executed 'clear'
+[2026-04-09 13:53:31] COMMAND: guest executed 'exit'
+[2026-04-09 13:53:54] COMMAND: guest executed 'clear'
+[2026-04-09 13:56:35] SYSTEM BOOT
+[2026-04-09 13:56:41] LOGIN SUCCESS: guest
+[2026-04-09 13:56:42] COMMAND: guest executed 'ls'
+[2026-04-09 13:57:35] SYSTEM BOOT
+[2026-04-09 13:57:40] LOGIN SUCCESS: guest
+[2026-04-09 13:57:41] COMMAND: guest executed 'ls'
+[2026-04-09 13:58:08] COMMAND: guest executed 'decode message.txt'
+[2026-04-09 13:58:23] COMMAND: guest executed 'submit flag{hello_investigator}'
+[2026-04-09 13:58:26] COMMAND: guest executed 'ls'
+[2026-04-09 13:58:32] COMMAND: guest executed 'clear'
+[2026-04-09 13:58:34] COMMAND: guest executed 'ls'
+[2026-04-09 13:58:54] COMMAND: guest executed 'cat letter.txt'
+[2026-04-09 13:59:04] COMMAND: guest executed 'decrypt letter.txt'
+[2026-04-09 14:00:11] COMMAND: guest executed 'decrypt caesar letter.txt 3'
+[2026-04-09 14:00:39] COMMAND: guest executed 'submit flag{caesar_clue}'
+[2026-04-09 14:00:42] COMMAND: guest executed 'clear'
+[2026-04-09 14:00:43] COMMAND: guest executed 'ls'
+[2026-04-09 14:01:12] COMMAND: guest executed 'cat password.hash'
+[2026-04-09 14:01:32] COMMAND: guest executed 'hash analyze password.hash'
+[2026-04-09 14:01:42] SESSION TIMEOUT: guest
+[2026-04-09 14:01:58] COMMAND: guest executed 'hash generate password123'
+[2026-04-09 14:02:33] COMMAND: guest executed 'hash generate password123'
+[2026-04-09 14:03:21] COMMAND: guest executed 'submit flag{password123}'
+[2026-04-09 14:03:24] COMMAND: guest executed 'clear'
+[2026-04-09 14:03:25] COMMAND: guest executed 'ls'
+[2026-04-09 14:03:35] COMMAND: guest executed 'cat password.hash'
+[2026-04-09 14:04:11] COMMAND: guest executed 'stego stract image.png'
+[2026-04-09 14:04:20] COMMAND: guest executed 'stego extract image.png'
+[2026-04-09 14:05:05] COMMAND: guest executed 'submit flag{check_the_logs}'
+[2026-04-09 14:05:13] COMMAND: guest executed 'clear'
+[2026-04-09 14:05:14] COMMAND: guest executed 'ls'
+[2026-04-09 14:05:41] COMMAND: guest executed 'cd var/log'
+[2026-04-09 14:05:53] COMMAND: guest executed 'sudo var/log'
+[2026-04-09 14:06:05] COMMAND: guest executed 'clear'
+[2026-04-09 14:06:11] COMMAND: guest executed 'sudo /var/log'
+[2026-04-09 14:06:19] COMMAND: guest executed 'clear'
+[2026-04-09 14:06:26] COMMAND: guest executed 'cd /var/log'
+[2026-04-09 14:06:28] COMMAND: guest executed 'ls'
+[2026-04-09 14:06:41] COMMAND: guest executed 'cat system.log'
+[2026-04-09 14:07:03] COMMAND: guest executed 'analyze system.log'
+[2026-04-09 14:10:37] COMMAND: guest executed 'shutdown '
+[2026-04-09 14:10:40] COMMAND: guest executed 'ls'
+[2026-04-09 14:15:40] SESSION TIMEOUT: guest

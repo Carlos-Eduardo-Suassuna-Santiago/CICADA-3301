@@ -26,6 +26,10 @@ class Decoder:
         
     def auto_decode(self, data):
 
+        if "-----BEGIN" in data and "-----END" in data:
+            lines = [line.strip() for line in data.splitlines() if line.strip() and not line.strip().startswith("-----")]
+            data = "".join(lines)
+
         # Base64
         result = self.decode_base64(data)
         if result:

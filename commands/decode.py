@@ -16,7 +16,7 @@ class DecodeCommand(BaseCommand):
             print("Usage: decode <file>")
             return
         
-        content = terminal.vfs.read_file(args[0])
+        content = terminal.vfs.read_file(args[0], terminal.auth.get_current_user())
 
         if not content:
             print("File not found or empty.")

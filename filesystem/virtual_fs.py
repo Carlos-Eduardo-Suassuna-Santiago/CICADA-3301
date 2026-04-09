@@ -114,6 +114,17 @@ class VirtualFileSystem:
             "perm": perm,
         }
 
+    def copy_file(self, source_path, dest_path, owner="root", perm="644"):
+        """Copy a file from source to destination."""
+        # Read source file
+        source_content = self.read_file(source_path)
+        if source_content is None:
+            return False
+        
+        # Create destination file with same content
+        self.create_file(dest_path, source_content, owner, perm)
+        return True
+
     def list_dir_full(self, path_parts):
 
         node = self._get_node(path_parts)

@@ -12,11 +12,10 @@ class SubmitCommand(BaseCommand):
             return
 
         flag = args[0]
+        user = terminal.auth.get_current_user()
 
-        if terminal.kernel.ctf.submit_flag(flag):
-
+        if terminal.ctf.submit_flag(flag, user):
             print("Flag correct")
             print("Next challenge unlocked")
-            
         else:
             print("Flag incorrect!")

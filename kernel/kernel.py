@@ -5,6 +5,7 @@ from terminal.terminal import Terminal
 from filesystem.virtual_fs import VirtualFileSystem
 from auth.user_manager import UserManager
 from logs.logger import Logger
+from ctf.challenge_manager import ChallengeManager
 
 class Kernel:
 
@@ -17,6 +18,7 @@ class Kernel:
         self.vfs = VirtualFileSystem(self.filesystem)
         self.user_manager = UserManager(self.users)
         self.logger = Logger()
+        self.ctf = ChallengeManager(self.vfs)
 
     def boot(self):
 
