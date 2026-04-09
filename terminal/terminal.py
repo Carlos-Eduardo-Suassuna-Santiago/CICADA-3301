@@ -137,20 +137,25 @@ class Terminal:
             self.logger.log(f"SESSION TIMEOUT: {self.auth.get_current_user()}")
             self.running = False
 
-        signal.signal(signal.SIGALRM, timeout_handler)
+        # Setup signal handler only on Unix/Linux/Mac (not on Windows)
+        if os.name != 'nt':
+            signal.signal(signal.SIGALRM, timeout_handler)
 
         self.clear_screen()
         self._print_banner()
 
         while self.running and not self.exiting:
 
-            signal.alarm(self.timeout)
+            if os.name != 'nt':
+                signal.alarm(self.timeout)
 
             try:
 
                 prompt = f"{Colors.GREEN}{self.auth.get_current_user()}{Colors.END}@{Colors.BLUE}{self.kernel.system_name}{Colors.END}:{Colors.CYAN}{self.vfs.get_pwd()}{Colors.END}$ "
                 command = self.input_handler.process_input(prompt)
-                signal.alarm(0)  # cancel alarm
+                
+                if os.name != 'nt':
+                    signal.alarm(0)  # cancel alarm
 
                 self.history.append(command)
                 self.execute(command)
