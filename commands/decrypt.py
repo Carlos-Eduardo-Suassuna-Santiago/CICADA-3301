@@ -24,7 +24,7 @@ class DecryptCommand(BaseCommand):
 
             if not content:
                 print(f"File '{file_name}' not found.")
-                return
+                return False
 
             for shift in range(1, 26):
                 candidate = self.engine.decrypt_caesar(content, shift)
