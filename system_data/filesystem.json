@@ -1,0 +1,127 @@
+{
+  "/": {
+    "type": "dir",
+    "owner": "root",
+    "perm": "755",
+    "content": {
+
+      "bin": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {}
+      },
+
+      "etc": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "passwd": {
+            "type": "file",
+            "owner": "root",
+            "perm": "644",
+            "content": "root:x:0:0:root:/root:/bin/bash\nguest:x:1000:1000::/home/guest:/bin/bash"
+          }
+
+        }
+      },
+
+      "home": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "guest": {
+            "type": "dir",
+            "owner": "guest",
+            "perm": "755",
+            "content": {
+
+              "readme.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "Welcome investigator."
+              },
+
+              "message.txt": {
+                "type": "file",
+                "owner": "guest",
+                "perm": "644",
+                "content": "SGVsbG8gSW52ZXN0aWdhdG9y"
+              }
+
+            }
+          }
+
+        }
+      },
+
+      "root": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "700",
+        "content": {
+
+          "secret.txt": {
+            "type": "file",
+            "owner": "root",
+            "perm": "600",
+            "content": "flag{root_access_required}"
+          }
+
+        }
+      },
+
+      "var": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+
+          "log": {
+            "type": "dir",
+            "owner": "root",
+            "perm": "755",
+            "content": {
+
+              "auth.log": {
+                "type": "file",
+                "owner": "root",
+                "perm": "644",
+                "content": "login attempt: guest\nlogin success: guest"
+              }
+
+            }
+          }
+
+        }
+      },
+
+      "tmp": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "777",
+        "content": {}
+      },
+
+      "usr": {
+        "type": "dir",
+        "owner": "root",
+        "perm": "755",
+        "content": {
+          "bin": {
+            "type": "dir",
+            "owner": "root",
+            "perm": "755",
+            "content": {}
+          }
+        }
+      }
+
+    }
+  }
+}

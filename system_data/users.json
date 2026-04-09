@@ -1,0 +1,18 @@
+{
+    "guest": {
+        "password": "$2b$12$zK1StL4VCDASSHlLkmDh1eZ6Ad5LVV8hA5QDM6M3CBwcO3r7.EVoG",
+        "role": "user"
+    },
+    "analyst": {
+        "password": "$2b$12$1txzv8nL9yCeSEuWs03e0O5sUdRzjlO99mfy8hrWaRcABXqcAmu9W",
+        "role": "analyst"
+    },
+    "admin": {
+        "password": "$2b$12$8aaU22OI0akzGplx0gNe.unaQFR0AA4TKquB1KQwBfiyQHGuego8m",
+        "role": "admin"
+    },
+    "root": {
+        "password": "$2b$12$6E9JxJ79c5YoO3E7e0TNoO3ldGcIqHoExZFCTgkhC.r4SvBPeLwqy",
+        "role": "root"
+    }
+}
