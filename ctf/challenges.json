@@ -8,7 +8,7 @@
       "difficulty": "easy",
       "points": 50,
       "flag": "flag{hello_investigator}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "O arquivo message.txt está em Base64.",
         "Use o comando 'decode message.txt'.",
@@ -38,7 +38,7 @@
       "difficulty": "easy",
       "points": 75,
       "flag": "flag{caesar_clue}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "A mensagem é uma cifra de César.",
         "Use o comando 'decrypt letter.txt'.",
@@ -68,7 +68,7 @@
       "difficulty": "medium",
       "points": 100,
       "flag": "flag{password123}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "O arquivo contém um hash SHA256.",
         "Use 'hash analyze password.hash' para identificar o algoritmo.",
@@ -98,7 +98,7 @@
       "difficulty": "medium",
       "points": 125,
       "flag": "flag{check_the_logs}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "A imagem contém uma mensagem oculta.",
         "Use 'stego extract image.png'.",
@@ -128,7 +128,7 @@
       "difficulty": "hard",
       "points": 150,
       "flag": "flag{log_analysis_success}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "O arquivo /var/log/system.log contém eventos suspeitos.",
         "Use 'analyze system.log'.",
@@ -158,7 +158,7 @@
       "difficulty": "hard",
       "points": 175,
       "flag": "flag{root_access_granted}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "O script backup.sh é vulnerável.",
         "Use 'sudo exploit backup.sh'.",
@@ -181,7 +181,7 @@
       "difficulty": "hard",
       "points": 200,
       "flag": "flag{welcome_to_the_inner_circle}",
-      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual"],
+      "available_commands": ["ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "sudo", "exploit", "help", "history", "whoami", "submit", "manual", "shutdown"],
       "hints": [
         "O arquivo final está em /root/final.key.",
         "Use 'decode /root/final.key'.",
