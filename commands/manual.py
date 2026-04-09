@@ -11,11 +11,11 @@ class ManualCommand(BaseCommand):
 
         # Lista de exemplos práticos para cada comando
         examples = {
-            "cat": "cat /home/user/file.txt",
-            "cd": "cd /home/user",
+            "cat": "cat /home/guest/file.txt",
+            "cd": "cd /home/guest",
             "clear": "clear",
             "decode": "decode base64 SGVsbG8gV29ybGQ=",
-            "decrypt": "decrypt /path/to/encrypted/file",
+            "decrypt": "decrypt caesar /home/guest/cipher.txt 3",
             "hash": "hash sha256 'Hello World'",
             "help": "help ls",
             "history": "history",
@@ -27,12 +27,13 @@ class ManualCommand(BaseCommand):
             "ps": "ps",
             "pwd": "pwd",
             "shutdown": "shutdown",
-            "stego": "stego extract /path/to/image.png",
+            "stego": "stego extract /home/guest/image.png",
             "su": "su admin",
-            "submit": "submit challenge_id solution",
+            "submit": "submit flag{example_flag}",
             "sudo": "sudo cat /etc/secret",
             "who": "who",
-            "whoami": "whoami"
+            "whoami": "whoami",
+            "manual": "manual"
         }
 
         for cmd_name, cmd in terminal.commands.items():

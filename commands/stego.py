@@ -1,12 +1,13 @@
 from commands.base_command import BaseCommand
 from security.stego_engine import StegoEngine
+import base64
 import os
 
 class StegoCommand(BaseCommand):
 
     name = "stego"
     description = "Steganography operations"
-    usage = "stego <operation> <args>"
+    usage = "stego extract <image>"
 
     autocomplete = { 1: ["extract"]}
 
@@ -26,13 +27,30 @@ class StegoCommand(BaseCommand):
             print("Invalid mode. Use 'extract'.")
             return
 
-        filename = os.path.basename(filename)
-        if ".." in filename or "/" in filename or "\\" in filename:
-            print("Invalid filename.")
-            return
+        content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
+        temp_path = None
 
-        path = f"assets/{filename}"
+        if content:
+            if content.startswith("STEGOMSG:"):
+                print(content.split("STEGOMSG:", 1)[1])
+                return
+
+            try:
+                image_data = base64.b64decode(content)
+                temp_path = "/tmp/stego_temp.png"
+                with open(temp_path, "wb") as f:
+                    f.write(image_data)
+            except Exception:
+                temp_path = None
+
+        if temp_path:
+            path = temp_path
+        else:
+            filename = os.path.basename(filename)
+            if ".." in filename or "/" in filename or "\\" in filename:
+                print("Invalid filename.")
+                return
+            path = f"assets/{filename}"
 
         result = self.engine.extract_lsb(path)
-
         print(result)

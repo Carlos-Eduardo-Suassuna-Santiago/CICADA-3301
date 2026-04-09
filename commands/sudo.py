@@ -20,9 +20,12 @@ class SudoCommand(BaseCommand):
 
         command = terminal.commands.get(command_name)
 
+        keep_root = False
         if command:
-            command.execute(terminal, command_args)
+            result = command.execute(terminal, command_args)
+            keep_root = bool(result)
         else:
             print(f"Command not found: {command_name}")
 
-        terminal.auth.set_current_user(original_user)
+        if not keep_root:
+            terminal.auth.set_current_user(original_user)

@@ -38,7 +38,10 @@ from commands.history import HistoryCommand
 from commands.sudo import SudoCommand
 from commands.ps import PsCommand
 from commands.logread import LogreadCommand
+from commands.analyze import AnalyzeCommand
+from commands.exploit import ExploitCommand
 from commands.manual import ManualCommand
+
 
 class Terminal:
 
@@ -51,6 +54,7 @@ class Terminal:
         self.vfs = kernel.vfs
         self.parser = CommandParser(kernel)
         self.auth = kernel.user_manager
+        self.ctf = kernel.ctf
         self.current_dir = "/"
         self.running = True
         self.exiting = False
@@ -75,12 +79,14 @@ class Terminal:
             "hash": HashCommand(),
             "stego": StegoCommand(),
             "decrypt": DecryptCommand(),
+            "analyze": AnalyzeCommand(),
+            "exploit": ExploitCommand(),
             "submit": SubmitCommand(),
             "history": HistoryCommand(),
             "sudo": SudoCommand(),
             "ps": PsCommand(),
             "logread": LogreadCommand(),
-            "manual": ManualCommand(),
+            "manual": ManualCommand()
         }
 
     def login_screen(self):
@@ -170,7 +176,16 @@ class Terminal:
 
        if cmd == "":
            return
+       
        self.logger.log_command(self.auth.get_current_user(), command)
+       
+       available_cmds = self.ctf.get_available_commands()
+       
+       if cmd not in available_cmds:
+           print(f"{Colors.RED}Command '{cmd}' not available at this level.{Colors.END}")
+           print(f"{Colors.YELLOW}Available commands: {', '.join(available_cmds)}{Colors.END}")
+           return
+       
        if cmd in self.commands:
           self.commands[cmd].execute(self, args) 
        else:
