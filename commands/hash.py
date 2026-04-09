@@ -21,7 +21,7 @@ class HashCommand(BaseCommand):
         mode = args[0]
         filename = args[1]
 
-        content = terminal.vfs.read_file(filename)
+        content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
 
         if not content:
             print(f"File not found: {filename}")

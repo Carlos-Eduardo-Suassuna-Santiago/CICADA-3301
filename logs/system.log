@@ -237,3 +237,26 @@
 [2026-04-01 18:21:02] COMMAND: root executed 'ls'
 [2026-04-01 18:21:38] COMMAND: root executed 'shutdown'
 [2026-04-01 18:21:38] SYSTEM SHUTDOWN
+[2026-04-09 11:09:14] SYSTEM BOOT
+[2026-04-09 11:09:22] LOGIN SUCCESS: guest
+[2026-04-09 11:09:48] COMMAND: guest executed 'cat message.txt'
+[2026-04-09 11:10:24] COMMAND: guest executed 'decode base64 SGVsbG8gQ3liZXIgQ3Rm'
+[2026-04-09 11:12:17] COMMAND: guest executed 'submit flag{hello_cyber_ctf}'
+[2026-04-09 11:12:43] SYSTEM BOOT
+[2026-04-09 11:12:48] LOGIN SUCCESS: guest
+[2026-04-09 11:12:59] COMMAND: guest executed 'submit flag{hello_cyber_ctf}'
+[2026-04-09 11:14:09] SYSTEM BOOT
+[2026-04-09 11:14:14] LOGIN SUCCESS: guest
+[2026-04-09 11:14:30] COMMAND: guest executed 'submit flag{hello_cyber_ctf}'
+[2026-04-09 11:14:56] COMMAND: guest executed 'ls'
+[2026-04-09 11:15:03] COMMAND: guest executed 'clear'
+[2026-04-09 11:15:13] COMMAND: guest executed 'cat caesar.txt'
+[2026-04-09 11:15:29] COMMAND: guest executed 'decrypt caesar FDHVDU LV HDVB 3'
+[2026-04-09 11:17:02] SYSTEM BOOT
+[2026-04-09 11:17:15] LOGIN SUCCESS: guest
+[2026-04-09 11:17:45] COMMAND: guest executed 'decrypt caesar FDHVDU LV HDVB 3'
+[2026-04-09 11:18:43] COMMAND: guest executed 'decrypt caesar "FDHVDU LV HDVB" 3'
+[2026-04-09 11:19:04] COMMAND: guest executed 'cat caesar.txt'
+[2026-04-09 11:19:25] COMMAND: guest executed 'sudo cat caesar.txt'
+[2026-04-09 11:20:22] COMMAND: guest executed 'shutdown'
+[2026-04-09 11:20:22] SYSTEM SHUTDOWN

@@ -21,7 +21,7 @@ class DecryptCommand(BaseCommand):
         mode = args[0]
         file_name = args[1]
 
-        content = terminal.vfs.read_file(file_name)
+        content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
 
         if not content:
             print(f"File '{file_name}' not found.")
