@@ -39,7 +39,6 @@ from commands.sudo import SudoCommand
 from commands.ps import PsCommand
 from commands.logread import LogreadCommand
 
-
 class Terminal:
 
     def __init__(self, kernel):
