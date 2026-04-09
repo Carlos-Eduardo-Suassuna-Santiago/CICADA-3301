@@ -1,0 +1,51 @@
+🔹 Permissão
+chmod +x ~/start_initium.sh
+
+🔧 Etapa 2 — Criar serviço systemd
+
+Crie:
+sudo nano /etc/systemd/system/initium.service
+
+📜 Conteúdo do serviço
+[Unit]
+Description=Initium OS (Cicada 3301 Simulation)
+After=network.target
+
+[Service]
+User=SEU_USUARIO
+WorkingDirectory=/home/SEU_USUARIO/CICADA-3301
+
+ExecStart=/home/SEU_USUARIO/start_initium.sh
+
+Restart=always
+RestartSec=3
+
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+⚠️ IMPORTANTE
+
+Substitua:
+
+User=SEU_USUARIO
+
+Por seu usuário real, ex:
+User=carlos
+
+🔧 Etapa 3 — Ativar serviço
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+
+🔧 Etapa 4 — Habilitar no boot
+sudo systemctl enable initium.service
+
+🔧 Etapa 5 — Testar agora
+sudo systemctl start initium.service
+
+🔍 Ver logs
+journalctl -u initium.service -f
+
+ou:
+
+cat ~/initium.log
