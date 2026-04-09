@@ -38,6 +38,7 @@ from commands.history import HistoryCommand
 from commands.sudo import SudoCommand
 from commands.ps import PsCommand
 from commands.logread import LogreadCommand
+from commands.manual import ManualCommand
 
 class Terminal:
 
@@ -79,6 +80,7 @@ class Terminal:
             "sudo": SudoCommand(),
             "ps": PsCommand(),
             "logread": LogreadCommand(),
+            "manual": ManualCommand(),
         }
 
     def login_screen(self):
