@@ -1,9 +1,14 @@
+"""Module for the missions_engine component of the CICADA-3301 application."""
+
 class MissionsEngine:
+    """Execute mission actions that modify the virtual filesystem for challenge progression."""
 
     def __init__(self, vfs):
+        """Initialize the object state."""
         self.vfs = vfs
 
     def execute_actions(self, actions):
+        """execute_actions function."""
 
         for action in actions:
 

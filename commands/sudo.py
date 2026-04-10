@@ -1,12 +1,16 @@
+"""Module for the sudo component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 
 class SudoCommand(BaseCommand):
+    """Command implementation for the sudo command."""
 
     name = "sudo"
     description = "Execute a command as another user"
     usage = "sudo <command>"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) == 0:
             print("Usage: sudo <command>")

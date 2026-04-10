@@ -1,3 +1,5 @@
+"""Module for the input_handler component of the CICADA-3301 application."""
+
 import sys
 import os
 
@@ -11,6 +13,7 @@ if os.name == 'nt':
     import msvcrt
 
     def getch_char():
+        """getch_char function."""
         return msvcrt.getch()
 
 #====================
@@ -22,6 +25,7 @@ else:
     import termios
 
     def getch_char():
+        """getch_char function."""
 
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
@@ -35,8 +39,10 @@ else:
 
 
 class InputHandler:
+    """Handle interactive terminal input, history, autocomplete, and rendering."""
 
     def __init__(self, terminal):
+        """Initialize the object state."""
 
         self.terminal = terminal
 
@@ -46,6 +52,7 @@ class InputHandler:
         self.history_index = 0
 
     def process_input(self, prompt):
+        """process_input function."""
 
         self.buffer = []
         self.cursor = 0
@@ -121,6 +128,7 @@ class InputHandler:
             self._render(prompt)
 
     def _render(self, prompt):
+        """_render function."""
         
         #LIMPA A LINHA
         print("\r", end='')
@@ -137,6 +145,7 @@ class InputHandler:
         print(f"\r{prompt}{''.join(self.buffer[:self.cursor])}", end='', flush=True)
     
     def _history_up(self):
+        """_history_up function."""
 
         if not self.terminal.history:
             return
@@ -146,6 +155,7 @@ class InputHandler:
         self.cursor = len(self.buffer)
 
     def _history_down(self):
+        """_history_down function."""
         
         if not self.terminal.history:
             return
@@ -155,6 +165,7 @@ class InputHandler:
         self.cursor = len(self.buffer)
 
     def _autocomplete(self):
+        """_autocomplete function."""
 
         text = ''.join(self.buffer)
         tokens = text.split()
@@ -212,6 +223,7 @@ class InputHandler:
         self._autocomplete_path(tokens, partial)
     
     def _autocomplete_path(self, tokens, partial):
+        """_autocomplete_path function."""
 
         vfs = self.terminal.vfs
 
@@ -244,6 +256,7 @@ class InputHandler:
 
 
     def _apply_path_match(self, matches, tokens, base_path):
+        """_apply_path_match function."""
 
         if len(matches) == 1:
             
@@ -273,6 +286,7 @@ class InputHandler:
             input("\nPress Enter...")
 
     def _print_matches(self, matches):
+        """_print_matches function."""
 
         print("\n")
 

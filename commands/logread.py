@@ -1,13 +1,17 @@
+"""Module for the logread component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 import os
 
 class LogreadCommand(BaseCommand):
+    """Command implementation for the logread command."""
 
     name = "logread"
     description = "Show system logs"
     usage = "logread [n_lines|filter]"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         log_file = "logs/system.log"
 

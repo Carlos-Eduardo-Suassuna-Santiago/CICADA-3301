@@ -1,12 +1,16 @@
+"""Module for the manual component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 
 class ManualCommand(BaseCommand):
+    """Command implementation for the manual command."""
 
     name = "manual"
     description = "Display detailed manual for all commands"
     usage = "manual"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
         print("\n=== CICADA-3301 Command Manual ===\n")
 
         # Lista de exemplos práticos para cada comando

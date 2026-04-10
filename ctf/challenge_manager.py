@@ -1,10 +1,14 @@
+"""Module for the challenge_manager component of the CICADA-3301 application."""
+
 import json
 from ctf.missions_engine import MissionsEngine
 
 
 class ChallengeManager:
+    """Manage CTF challenges, available commands, and submission flow."""
 
     def __init__(self, vfs):
+        """Initialize the object state."""
 
         with open("ctf/challenges.json") as f:
             self.data = json.load(f)
@@ -15,6 +19,7 @@ class ChallengeManager:
         self.start_challenge()
 
     def get_current(self):
+        """Return the current from the current state."""
         return self.data["challenges"][self.current]
 
     def get_available_commands(self):
@@ -34,6 +39,7 @@ class ChallengeManager:
             self.engine.execute_actions(challenge["on_start"])
 
     def submit_flag(self, flag, username="guest"):
+        """submit_flag function."""
 
         challenge = self.get_current()
 

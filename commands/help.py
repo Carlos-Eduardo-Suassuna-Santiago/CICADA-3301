@@ -1,18 +1,23 @@
+"""Module for the help component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 
 class Colors:
+    """Colors class."""
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
     CYAN = '\033[96m'
     END = '\033[0m'
 
 class HelpCommand(BaseCommand):
+    """Command implementation for the help command."""
 
     name = "help"
     description = "List available commands"
     usage = "help"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         available_cmds = terminal.ctf.get_available_commands()
 

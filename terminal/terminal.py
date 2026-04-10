@@ -1,9 +1,12 @@
+"""Module for the terminal component of the CICADA-3301 application."""
+
 import os
 import getpass
 import signal
 import time
 
 class Colors:
+    """Colors class."""
     GREEN = '\033[92m'
     BLUE = '\033[94m'
     RED = '\033[91m'
@@ -44,8 +47,10 @@ from commands.manual import ManualCommand
 
 
 class Terminal:
+    """Terminal class."""
 
     def __init__(self, kernel):
+        """Initialize the object state."""
 
         self.process_manager = ProcessManager()
         self.input_handler = InputHandler(self)
@@ -90,6 +95,7 @@ class Terminal:
         }
 
     def login_screen(self):
+        """login_screen function."""
 
         while True:
 
@@ -116,6 +122,7 @@ class Terminal:
                 print("Press Enter to try again...")
 
     def _print_banner(self):
+        """_print_banner function."""
 
         print(f"{Colors.CYAN}{'=' * 40}{Colors.END}")
         print(f"{Colors.GREEN}{self.kernel.system_name} v {self.kernel.version}{Colors.END}")
@@ -124,14 +131,17 @@ class Terminal:
         print("\n")
 
     def clear_screen(self):
+        """clear_screen function."""
 
         os.system('cls' if os.name == 'nt' else 'clear')
 
     def run_session(self):
+        """run_session function."""
 
         self.running = True
 
         def timeout_handler(signum, frame):
+            """timeout_handler function."""
 
             print(f"\n{Colors.YELLOW}Session timed out due to inactivity.{Colors.END}")
             self.logger.log(f"SESSION TIMEOUT: {self.auth.get_current_user()}")
@@ -169,6 +179,7 @@ class Terminal:
         
 
     def start(self):
+        """start function."""
 
         while not self.exiting:
 
@@ -176,27 +187,29 @@ class Terminal:
             self.run_session()
     
     def execute(self, command):
-        
-       cmd, args = self.parser.parse(command)
+        """Execute the operation for this component."""
 
-       if cmd == "":
-           return
-       
-       self.logger.log_command(self.auth.get_current_user(), command)
-       
-       available_cmds = self.ctf.get_available_commands()
-       
-       if cmd not in available_cmds:
-           print(f"{Colors.RED}Command '{cmd}' not available at this level.{Colors.END}")
-           print(f"{Colors.YELLOW}Available commands: {', '.join(available_cmds)}{Colors.END}")
-           return
-       
-       if cmd in self.commands:
-          self.commands[cmd].execute(self, args) 
-       else:
-          print(f"{Colors.RED}Command not found: {cmd}{Colors.END}")
+        cmd, args = self.parser.parse(command)
+
+        if cmd == "":
+            return
+
+        self.logger.log_command(self.auth.get_current_user(), command)
+
+        available_cmds = self.ctf.get_available_commands()
+
+        if cmd not in available_cmds:
+            print(f"{Colors.RED}Command '{cmd}' not available at this level.{Colors.END}")
+            print(f"{Colors.YELLOW}Available commands: {', '.join(available_cmds)}{Colors.END}")
+            return
+
+        if cmd in self.commands:
+            self.commands[cmd].execute(self, args)
+        else:
+            print(f"{Colors.RED}Command not found: {cmd}{Colors.END}")
 
     def help(self):
+        """help function."""
 
         print("\nAvailable commands:")
         print("help - Show commands")

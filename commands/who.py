@@ -1,13 +1,17 @@
+"""Module for the who component of the CICADA-3301 application."""
+
 import time
 from commands.base_command import BaseCommand
 
 class WhoCommand(BaseCommand):
+    """Command implementation for the who command."""
 
     name = "who"
     description = "Show logged-in users and session info"
     usage = "who"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         user = terminal.auth.get_current_user()
 

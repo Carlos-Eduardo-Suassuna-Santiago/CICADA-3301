@@ -1,11 +1,16 @@
+"""Module for the virtual_fs component of the CICADA-3301 application."""
+
 class VirtualFileSystem:
+    """In-memory virtual filesystem used by the simulation for file and directory operations."""
 
     def __init__(self, fs_data):
+        """Initialize the object state."""
 
         self.fs = fs_data
         self.current_path = "/"
 
     def _resolve_path(self, path):
+        """_resolve_path function."""
 
         if path.startswith("/"):
             parts = path.strip("/").split("/")
@@ -25,6 +30,7 @@ class VirtualFileSystem:
         return normalized
 
     def _get_node(self, parts):
+        """_get_node function."""
 
         node = self.fs["/"]
 
@@ -41,6 +47,7 @@ class VirtualFileSystem:
         return node
     
     def list_dir(self, path=None, user=None):
+        """List dir in the current virtual filesystem or session."""
 
         if path is None:
             path = self.current_path
@@ -53,6 +60,7 @@ class VirtualFileSystem:
         return []
     
     def change_dir(self, path, user):
+        """Change the dir within the current environment."""
 
         parts = self._resolve_path(path)
 
@@ -71,6 +79,7 @@ class VirtualFileSystem:
 
 
     def read_file(self, filename, user):
+        """Read the specified file from the virtual filesystem."""
 
         parts = self._resolve_path(filename)
         node = self._get_node(parts)
@@ -86,10 +95,12 @@ class VirtualFileSystem:
         return None 
     
     def get_pwd(self):
+        """Return the pwd from the current state."""
 
         return self.current_path
 
     def has_permission(self, node, user):
+        """Check whether the permission is available or permitted."""
         # root tem acesso total
         if user == "root":
             return True
@@ -105,6 +116,7 @@ class VirtualFileSystem:
         return False
 
     def create_file(self, path, content, owner="root", perm="644"):
+        """Create a new resource inside the virtual filesystem."""
 
         parts = path.strip("/").split("/")
         filename = parts[-1]
@@ -136,6 +148,7 @@ class VirtualFileSystem:
         return True
 
     def list_dir_full(self, path_parts):
+        """List dir_full in the current virtual filesystem or session."""
 
         node = self._get_node(path_parts)
 
@@ -144,6 +157,7 @@ class VirtualFileSystem:
         return []
 
     def resolve_partial(self, path):
+        """resolve_partial function."""
 
         if path.startswith("/"):
             parts = path.strip("/").split("/")

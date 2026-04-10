@@ -1,9 +1,12 @@
+"""Module for the stego component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 from security.stego_engine import StegoEngine
 import base64
 import os
 
 class StegoCommand(BaseCommand):
+    """Command implementation for the stego command."""
 
     name = "stego"
     description = "Steganography operations"
@@ -12,9 +15,11 @@ class StegoCommand(BaseCommand):
     autocomplete = { 1: ["extract"]}
 
     def __init__(self):
+        """Initialize the object state."""
         self.engine = StegoEngine()
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) < 2:
             print("Usage: stego extract <image>")
