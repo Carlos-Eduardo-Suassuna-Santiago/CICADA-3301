@@ -31,3 +31,24 @@
 [2026-04-09 19:44:26] COMMAND: guest executed 'clear'
 [2026-04-09 19:44:31] COMMAND: guest executed 'shutdown'
 [2026-04-09 19:44:31] SYSTEM SHUTDOWN
+[2026-04-10 14:51:47] SYSTEM BOOT
+[2026-04-10 14:52:01] LOGIN SUCCESS: guest
+[2026-04-10 14:52:03] COMMAND: guest executed 'ls'
+[2026-04-10 14:52:13] COMMAND: guest executed 'cat message.txt'
+[2026-04-10 14:52:34] COMMAND: guest executed 'decode message.txt'
+[2026-04-10 14:53:09] COMMAND: guest executed 'ls'
+[2026-04-10 14:53:31] COMMAND: guest executed 'submit flag{hello_investigator}'
+[2026-04-10 14:53:35] COMMAND: guest executed 'ls'
+[2026-04-10 14:53:43] COMMAND: guest executed 'cat progress.txt'
+[2026-04-10 14:53:52] COMMAND: guest executed 'clear'
+[2026-04-10 14:54:00] COMMAND: guest executed 'cat letter.txt'
+[2026-04-10 14:54:06] COMMAND: guest executed 'ls'
+[2026-04-10 14:54:11] COMMAND: guest executed 'decode letter.txt'
+[2026-04-10 14:54:45] COMMAND: guest executed 'decrypt letter.txt'
+[2026-04-10 14:55:21] COMMAND: guest executed 'submit flag{next_clue}'
+[2026-04-10 14:56:10] COMMAND: guest executed 'submit flag{caesar_clue}'
+[2026-04-10 14:56:13] COMMAND: guest executed 'ls'
+[2026-04-10 14:56:22] COMMAND: guest executed 'cat progress.txt'
+[2026-04-10 14:56:32] COMMAND: guest executed 'clear'
+[2026-04-10 14:57:03] COMMAND: guest executed 'shutdown '
+[2026-04-10 14:57:03] SYSTEM SHUTDOWN

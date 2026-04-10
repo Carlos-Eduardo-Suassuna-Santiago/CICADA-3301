@@ -22,7 +22,7 @@ class DecryptCommand(BaseCommand):
             file_name = args[0]
             content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
 
-            if not content:
+            if content is None:
                 print(f"File '{file_name}' not found.")
                 return False
 
@@ -47,7 +47,7 @@ class DecryptCommand(BaseCommand):
                 return False
 
             content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
-            if not content:
+            if content is None:
                 print(f"File '{file_name}' not found.")
                 return False
 
@@ -58,7 +58,7 @@ class DecryptCommand(BaseCommand):
         file_name = args[1] if len(args) > 1 else None
         content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
 
-        if not content:
+        if content is None:
             print(f"File '{file_name}' not found.")
             return False
 

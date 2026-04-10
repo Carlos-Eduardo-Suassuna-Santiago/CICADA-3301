@@ -30,10 +30,13 @@ class StegoCommand(BaseCommand):
         content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
         temp_path = None
 
-        if content:
-            if content.startswith("STEGOMSG:"):
-                print(content.split("STEGOMSG:", 1)[1])
-                return
+        if content is None:
+            print(f"File not found: {filename}")
+            return
+
+        if content.startswith("STEGOMSG:"):
+            print(content.split("STEGOMSG:", 1)[1])
+            return
 
             try:
                 image_data = base64.b64decode(content)

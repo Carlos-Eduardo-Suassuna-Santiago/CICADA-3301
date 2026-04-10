@@ -159,7 +159,7 @@ class Terminal:
 
                 self.history.append(command)
                 self.execute(command)
-                self.input_handler.buff = []
+                self.input_handler.buffer = []
                 self.input_handler.cursor = 0
 
             except KeyboardInterrupt:

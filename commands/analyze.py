@@ -15,7 +15,7 @@ class AnalyzeCommand(BaseCommand):
         filename = args[0]
         content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
 
-        if not content:
+        if content is None:
             print(f"File not found: {filename}")
             return
 

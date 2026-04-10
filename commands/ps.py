@@ -3,7 +3,7 @@ from commands.base_command import BaseCommand
 class PsCommand(BaseCommand):
 
     name = "ps"
-    description = "List running precesses"
+    description = "List running processes"
     usage = "ps"
 
     def execute(self, terminal, args):
@@ -13,4 +13,4 @@ class PsCommand(BaseCommand):
         print("PID USER NAME")
 
         for p in processes:
-            print(f"{p["pid"]}  {p["user"]}  {p["name"]}")
+            print(f"{p['pid']}  {p['user']}  {p['name']}")

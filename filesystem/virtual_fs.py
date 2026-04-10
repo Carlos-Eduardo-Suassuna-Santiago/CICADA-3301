@@ -12,7 +12,17 @@ class VirtualFileSystem:
         else:
             parts = self.current_path.strip("/").split("/") + path.split("/")
 
-        return [p for p in parts if p]
+        normalized = []
+        for part in parts:
+            if part == "" or part == ".":
+                continue
+            if part == "..":
+                if normalized:
+                    normalized.pop()
+                continue
+            normalized.append(part)
+
+        return normalized
 
     def _get_node(self, parts):
 
@@ -114,10 +124,10 @@ class VirtualFileSystem:
             "perm": perm,
         }
 
-    def copy_file(self, source_path, dest_path, owner="root", perm="644"):
+    def copy_file(self, source_path, dest_path, owner="root", perm="644", user="root"):
         """Copy a file from source to destination."""
         # Read source file
-        source_content = self.read_file(source_path)
+        source_content = self.read_file(source_path, user)
         if source_content is None:
             return False
         
@@ -136,11 +146,19 @@ class VirtualFileSystem:
     def resolve_partial(self, path):
 
         if path.startswith("/"):
-
             parts = path.strip("/").split("/")
-        
         else:
-
             current = self.current_path.strip("/").split("/") if self.current_path != "/" else []
             parts = current + path.split("/")
-            return [p for p in parts if p]
+
+        normalized = []
+        for part in parts:
+            if part == "" or part == ".":
+                continue
+            if part == "..":
+                if normalized:
+                    normalized.pop()
+                continue
+            normalized.append(part)
+
+        return normalized

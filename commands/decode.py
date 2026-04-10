@@ -20,7 +20,7 @@ class DecodeCommand(BaseCommand):
         # If only one argument, try to read from file and auto-decode
         if len(args) == 1:
             content = terminal.vfs.read_file(args[0], terminal.auth.get_current_user())
-            if not content:
+            if content is None:
                 print("File not found or empty.")
                 return
             result = self.decoder.auto_decode(content)

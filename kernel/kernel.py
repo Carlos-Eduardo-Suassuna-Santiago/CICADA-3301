@@ -43,6 +43,7 @@ class Kernel:
                 self.users = json.load(f)
         else:
             print("User database not found")
+            self.users = {}
 
     def load_filesystem(self):
 
@@ -53,6 +54,14 @@ class Kernel:
                 self.filesystem = json.load(f)
         else:
             print("Filesystem database not found")
+            self.filesystem = {
+                "/": {
+                    "type": "dir",
+                    "content": {},
+                    "owner": "root",
+                    "perm": "755"
+                }
+            }
 
     def log(self, message):
 

@@ -32,7 +32,9 @@ class UserManager:
     
     def get_role(self):
 
-        return self.users[self.current_user]["role"]
+        if self.current_user not in self.users:
+            return "guest"
+        return self.users[self.current_user].get("role", "guest")
 
     def get_user(self):
 
