@@ -242,7 +242,7 @@ Identificar o algoritmo de hash, depois encontrar a senha original que gera aque
 ```bash
 cat password.hash
 ```
-Resultado: `ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8`
+Resultado: `ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f`
 
 **Passo 2:** Analisar tipo de hash
 ```bash
@@ -254,7 +254,7 @@ Resultado: `Identified hash type: SHA256` (64 caracteres hex = SHA256)
 ```bash
 hash generate password123
 ```
-Isso gerará: `ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8`
+Isso gerará: `ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f`
 
 **Passo 4:** Se encontrar correspondência, submeter
 ```bash
@@ -552,7 +552,7 @@ flag{root_access_granted}
 
 ### 🎯 Objetivo
 
-Integrar todos os conhecimentos adquiridos nos desafios anteriores para descriptografar arquivo final e completar o CTF.
+Integrar todos os conhecimentos adquiridos nos desafios anteriores para descriptografar arquivo final e completar o CTF. Todos os comandos aprendidos estão disponíveis neste desafio final.
 
 ### 📝 Passo a Passo
 
@@ -582,6 +582,25 @@ Resultado: `[Base64] Welcome to the inner circle.`
 **Passo 4:** Submeter flag final
 ```bash
 submit flag{welcome_to_the_inner_circle}
+```
+Resultado:
+```
+🎉 PARABÉNS! Você completou o CTF de Segurança CICADA-3301! 🎉
+Você demonstrou domínio em:
+• Codificação e decodificação (Base64)
+• Criptografia clássica (Cifra de César)
+• Hashing e cracking de senhas (SHA256)
+• Esteganografia (LSB Steganography)
+• Análise forense de logs
+• Escalação de privilégios
+• Integração de técnicas de segurança
+
+Para encerrar o sistema, digite: shutdown
+```
+
+**Passo 5:** Encerrar o sistema
+```bash
+shutdown
 ```
 
 ### ✅ Flag Esperada

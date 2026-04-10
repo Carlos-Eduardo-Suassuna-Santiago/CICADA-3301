@@ -1,5 +1,7 @@
 """Module for the virtual_fs component of the CICADA-3301 application."""
 
+import os
+
 class VirtualFileSystem:
     """In-memory virtual filesystem used by the simulation for file and directory operations."""
 
@@ -138,11 +140,21 @@ class VirtualFileSystem:
 
     def copy_file(self, source_path, dest_path, owner="root", perm="644", user="root"):
         """Copy a file from source to destination."""
-        # Read source file
+        # Read source file from VFS first.
         source_content = self.read_file(source_path, user)
+
+        # Fallback to host repository path if file is not present in the VFS.
+        if source_content is None:
+            host_path = source_path
+            if not os.path.isabs(host_path):
+                host_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", source_path))
+            if os.path.exists(host_path):
+                with open(host_path, "rb") as f:
+                    source_content = f.read()
+
         if source_content is None:
             return False
-        
+
         # Create destination file with same content
         self.create_file(dest_path, source_content, owner, perm)
         return True

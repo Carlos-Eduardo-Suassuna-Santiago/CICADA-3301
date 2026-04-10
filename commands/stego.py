@@ -39,9 +39,18 @@ class StegoCommand(BaseCommand):
             print(f"File not found: {filename}")
             return
 
-        if content.startswith("STEGOMSG:"):
-            print(content.split("STEGOMSG:", 1)[1])
-            return
+        # Handle stub text files with an embedded message
+        if isinstance(content, bytes):
+            if content.startswith(b"STEGOMSG:"):
+                print(content.split(b"STEGOMSG:", 1)[1].decode("utf-8", errors="ignore"))
+                return
+            temp_path = "/tmp/stego_temp.png"
+            with open(temp_path, "wb") as f:
+                f.write(content)
+        else:
+            if content.startswith("STEGOMSG:"):
+                print(content.split("STEGOMSG:", 1)[1])
+                return
 
             try:
                 image_data = base64.b64decode(content)

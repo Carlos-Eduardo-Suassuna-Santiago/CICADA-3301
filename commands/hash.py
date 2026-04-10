@@ -20,27 +20,24 @@ class HashCommand(BaseCommand):
         """Execute the operation for this component."""
 
         if len(args) < 2:
-            print("Usage: hash <generate |analyze> <file>")
+            print("Usage: hash <generate | analyze> <text | file>")
             return
-        
+
         mode = args[0]
-        filename = args[1]
+        value = " ".join(args[1:])
 
-        content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
-
+        content = terminal.vfs.read_file(value, terminal.auth.get_current_user())
         if content is None:
-            print(f"File not found: {filename}")
-            return
+            # If it is not a file, use the raw text directly.
+            content = value
 
         if mode == "generate":
-            
             hashes = self.engine.generate(content)
 
             for k, v in hashes.items():
                 print(f"{k}: {v}")
 
         elif mode == "analyze":
-
             result = self.engine.identify(content)
             print(f"Identified hash type: {result}")
         else:

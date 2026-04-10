@@ -28,5 +28,7 @@ class AnalyzeCommand(BaseCommand):
         if "failed login root" in lower and "successful login analyst" in lower:
             print("Hidden directory unlocked: /usr/bin")
             print("The suspicious log entry points to /usr/bin/backup.sh")
+            # Create the backup.sh file for the next challenge
+            terminal.vfs.create_file("/usr/bin/backup.sh", "#!/bin/bash\necho 'Running backup...'\n", owner="root", perm="755")
         else:
             print("No obvious hidden clues found.")
