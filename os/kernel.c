@@ -89,6 +89,7 @@ static struct gdt_entry gdt_entries[3];
 static struct gdt_ptr gdt_ptr;
 static struct idt_entry idt_entries[256];
 static struct idt_ptr idt_ptr;
+static volatile uint32_t timer_ticks;
 
 static void print_boot_logo(void);
 static int str_contains(const char *text, const char *pattern);
@@ -1594,8 +1595,22 @@ static void clear_screen(void) {
     cursor_pos = UI_HEADER_LINES * VGA_WIDTH;
 }
 
+static void sleep_ticks(uint32_t tick_count) {
+    uint32_t start = timer_ticks;
+    while ((uint32_t)(timer_ticks - start) < tick_count) {
+        __asm__ volatile ("hlt");
+    }
+}
+
+static void shutdown_countdown(void) {
+    puts("desligando sistema em 14 segundos...\n");
+    serial_puts_raw("BOOT: shutdown countdown\n");
+
+    sleep_ticks(1400);
+}
+
 static void system_poweroff(void) {
-    puts("desligando sistema...\n");
+    shutdown_countdown();
     serial_puts_raw("BOOT: poweroff request\n");
 
     __asm__ volatile ("cli");
