@@ -1,3 +1,5 @@
+"""Module for the kernel component of the CICADA-3301 application."""
+
 import json
 import os
 from datetime import datetime
@@ -8,8 +10,10 @@ from logs.logger import Logger
 from ctf.challenge_manager import ChallengeManager
 
 class Kernel:
+    """Kernel orchestrates core system services, boot sequence, and global state."""
 
     def __init__(self):
+        """Initialize the object state."""
 
         self.system_name = "initium"
         self.version = "0.1"
@@ -21,12 +25,14 @@ class Kernel:
         self.ctf = ChallengeManager(self.vfs)
 
     def boot(self):
+        """boot function."""
 
         self.logger.log("SYSTEM BOOT")
         terminal = Terminal(self)
         terminal.start()
 
     def _print_banner(self):
+        """_print_banner function."""
 
         print("=" * 40)
         print(f"{self.system_name} v {self.version}")
@@ -35,6 +41,7 @@ class Kernel:
         print("\n")
 
     def load_users(self):
+        """Load the users definition from disk into memory."""
 
         path = "system_data/users.json"
 
@@ -43,8 +50,10 @@ class Kernel:
                 self.users = json.load(f)
         else:
             print("User database not found")
+            self.users = {}
 
     def load_filesystem(self):
+        """Load the filesystem definition from disk into memory."""
 
         path = "system_data/filesystem.json"
 
@@ -53,8 +62,17 @@ class Kernel:
                 self.filesystem = json.load(f)
         else:
             print("Filesystem database not found")
+            self.filesystem = {
+                "/": {
+                    "type": "dir",
+                    "content": {},
+                    "owner": "root",
+                    "perm": "755"
+                }
+            }
 
     def log(self, message):
+        """log function."""
 
         with open("logs/system.log", "a") as f:
             f.write(f"{datetime.now()} : {message}\n")

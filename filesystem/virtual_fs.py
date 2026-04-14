@@ -1,20 +1,38 @@
+"""Module for the virtual_fs component of the CICADA-3301 application."""
+
+import os
+
 class VirtualFileSystem:
+    """In-memory virtual filesystem used by the simulation for file and directory operations."""
 
     def __init__(self, fs_data):
+        """Initialize the object state."""
 
         self.fs = fs_data
         self.current_path = "/"
 
     def _resolve_path(self, path):
+        """_resolve_path function."""
 
         if path.startswith("/"):
             parts = path.strip("/").split("/")
         else:
             parts = self.current_path.strip("/").split("/") + path.split("/")
 
-        return [p for p in parts if p]
+        normalized = []
+        for part in parts:
+            if part == "" or part == ".":
+                continue
+            if part == "..":
+                if normalized:
+                    normalized.pop()
+                continue
+            normalized.append(part)
+
+        return normalized
 
     def _get_node(self, parts):
+        """_get_node function."""
 
         node = self.fs["/"]
 
@@ -31,6 +49,7 @@ class VirtualFileSystem:
         return node
     
     def list_dir(self, path=None, user=None):
+        """List dir in the current virtual filesystem or session."""
 
         if path is None:
             path = self.current_path
@@ -43,6 +62,7 @@ class VirtualFileSystem:
         return []
     
     def change_dir(self, path, user):
+        """Change the dir within the current environment."""
 
         parts = self._resolve_path(path)
 
@@ -61,6 +81,7 @@ class VirtualFileSystem:
 
 
     def read_file(self, filename, user):
+        """Read the specified file from the virtual filesystem."""
 
         parts = self._resolve_path(filename)
         node = self._get_node(parts)
@@ -76,10 +97,12 @@ class VirtualFileSystem:
         return None 
     
     def get_pwd(self):
+        """Return the pwd from the current state."""
 
         return self.current_path
 
     def has_permission(self, node, user):
+        """Check whether the permission is available or permitted."""
         # root tem acesso total
         if user == "root":
             return True
@@ -95,6 +118,7 @@ class VirtualFileSystem:
         return False
 
     def create_file(self, path, content, owner="root", perm="644"):
+        """Create a new resource inside the virtual filesystem."""
 
         parts = path.strip("/").split("/")
         filename = parts[-1]
@@ -114,18 +138,29 @@ class VirtualFileSystem:
             "perm": perm,
         }
 
-    def copy_file(self, source_path, dest_path, owner="root", perm="644"):
+    def copy_file(self, source_path, dest_path, owner="root", perm="644", user="root"):
         """Copy a file from source to destination."""
-        # Read source file
-        source_content = self.read_file(source_path)
+        # Read source file from VFS first.
+        source_content = self.read_file(source_path, user)
+
+        # Fallback to host repository path if file is not present in the VFS.
+        if source_content is None:
+            host_path = source_path
+            if not os.path.isabs(host_path):
+                host_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", source_path))
+            if os.path.exists(host_path):
+                with open(host_path, "rb") as f:
+                    source_content = f.read()
+
         if source_content is None:
             return False
-        
+
         # Create destination file with same content
         self.create_file(dest_path, source_content, owner, perm)
         return True
 
     def list_dir_full(self, path_parts):
+        """List dir_full in the current virtual filesystem or session."""
 
         node = self._get_node(path_parts)
 
@@ -134,13 +169,22 @@ class VirtualFileSystem:
         return []
 
     def resolve_partial(self, path):
+        """resolve_partial function."""
 
         if path.startswith("/"):
-
             parts = path.strip("/").split("/")
-        
         else:
-
             current = self.current_path.strip("/").split("/") if self.current_path != "/" else []
             parts = current + path.split("/")
-            return [p for p in parts if p]
+
+        normalized = []
+        for part in parts:
+            if part == "" or part == ".":
+                continue
+            if part == "..":
+                if normalized:
+                    normalized.pop()
+                continue
+            normalized.append(part)
+
+        return normalized

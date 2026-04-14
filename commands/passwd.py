@@ -1,20 +1,25 @@
+"""Module for the passwd component of the CICADA-3301 application."""
+
 import getpass
 import bcrypt
 import json
 from commands.base_command import BaseCommand
 
 class Colors:
+    """Colors class."""
     RED = '\033[91m'
     GREEN = '\033[92m'
     END = '\033[0m'
 
 class PasswdCommand(BaseCommand):
+    """Command implementation for the passwd command."""
 
     name = "passwd"
     description = "Change user password"
     usage = "passwd"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         user = terminal.auth.get_current_user()
 

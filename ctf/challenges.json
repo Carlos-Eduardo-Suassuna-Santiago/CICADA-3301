@@ -56,7 +56,7 @@
         {
           "action": "create_file",
           "path": "/home/guest/password.hash",
-          "content": "ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8"
+          "content": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
         }
       ]
     },
@@ -79,7 +79,7 @@
         {
           "action": "create_file",
           "path": "/home/guest/password.hash",
-          "content": "ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8"
+          "content": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
         }
       ],
       "on_complete": [
@@ -107,9 +107,9 @@
       "time_limit": 900,
       "on_start": [
         {
-          "action": "create_file",
-          "path": "/home/guest/image.png",
-          "content": "STEGOMSG:Check the system logs"
+          "action": "copy_file",
+          "source": "assets/secret.png",
+          "dest": "/home/guest/image.png"
         }
       ],
       "on_complete": [

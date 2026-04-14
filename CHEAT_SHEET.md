@@ -97,7 +97,7 @@ submit flag{welcome_to_the_inner_circle}
 |---------|------|-------|------|
 | 1 | Base64 Msg | `SGVsbG8gSW52ZXN0aWdhdG9y` | `hello_investigator` |
 | 2 | Caesar Text | `Brx pdB irxqg wkh qhaw foxh` (shift +3) | `caesar_clue` |
-| 3 | SHA256 | `ef92b778bafe771e89245b89ecbc7502fccc466aa2885b78f93d8db23b3f95d8` | `password123` |
+| 3 | SHA256 | `ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f` | `password123` |
 | 4 | Stego Msg | `Check the system logs` | `check_the_logs` |
 | 5 | Log Pattern | Failed→Success auth | `log_analysis_success` |
 | 6 | Exploit | backup.sh vuln | `root_access_granted` |

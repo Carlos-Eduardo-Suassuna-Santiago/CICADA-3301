@@ -1,12 +1,16 @@
+"""Module for the analyze component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 
 class AnalyzeCommand(BaseCommand):
+    """Command implementation for the analyze command."""
 
     name = "analyze"
     description = "Analyze a log or text file for hidden clues"
     usage = "analyze <file>"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) == 0:
             print("Usage: analyze <file>")
@@ -15,7 +19,7 @@ class AnalyzeCommand(BaseCommand):
         filename = args[0]
         content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
 
-        if not content:
+        if content is None:
             print(f"File not found: {filename}")
             return
 
@@ -24,5 +28,7 @@ class AnalyzeCommand(BaseCommand):
         if "failed login root" in lower and "successful login analyst" in lower:
             print("Hidden directory unlocked: /usr/bin")
             print("The suspicious log entry points to /usr/bin/backup.sh")
+            # Create the backup.sh file for the next challenge
+            terminal.vfs.create_file("/usr/bin/backup.sh", "#!/bin/bash\necho 'Running backup...'\n", owner="root", perm="755")
         else:
             print("No obvious hidden clues found.")

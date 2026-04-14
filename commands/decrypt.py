@@ -1,7 +1,10 @@
+"""Module for the decrypt component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 from security.cripto_engine import CryptoEngine
 
 class DecryptCommand(BaseCommand):
+    """Command implementation for the decrypt command."""
 
     name = "decrypt"
     description = "Decrypt encrypted text"
@@ -10,9 +13,11 @@ class DecryptCommand(BaseCommand):
     autocomplete = { 1: ["cesar", "vigenere"]}
 
     def __init__(self):
+        """Initialize the object state."""
         self.engine = CryptoEngine()
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) == 0:
             print("Usage: decrypt <file> | decrypt <caesar|vigenere> <file> [key|shift]")
@@ -22,7 +27,7 @@ class DecryptCommand(BaseCommand):
             file_name = args[0]
             content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
 
-            if not content:
+            if content is None:
                 print(f"File '{file_name}' not found.")
                 return False
 
@@ -47,7 +52,7 @@ class DecryptCommand(BaseCommand):
                 return False
 
             content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
-            if not content:
+            if content is None:
                 print(f"File '{file_name}' not found.")
                 return False
 
@@ -58,7 +63,7 @@ class DecryptCommand(BaseCommand):
         file_name = args[1] if len(args) > 1 else None
         content = terminal.vfs.read_file(file_name, terminal.auth.get_current_user())
 
-        if not content:
+        if content is None:
             print(f"File '{file_name}' not found.")
             return False
 

@@ -1,16 +1,21 @@
+"""Module for the cat component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 
 class Colors:
+    """Colors class."""
     RED = '\033[91m'
     END = '\033[0m'
 
 class CatCommand(BaseCommand):
+    """Command implementation for the cat command."""
 
     name = "cat"
     description = "Display file contents"
     usage = "cat <file>"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) == 0:
             print("usage: cat <file>")

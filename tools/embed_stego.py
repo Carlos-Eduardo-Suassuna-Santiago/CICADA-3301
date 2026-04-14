@@ -1,7 +1,10 @@
+"""Module for the embed_stego component of the CICADA-3301 application."""
+
 from PIL import Image
 
 
 def embed_message(input_image, output_image, message):
+    """embed_message function."""
 
     img = Image.open(input_image)
     pixels = list(img.getdata())

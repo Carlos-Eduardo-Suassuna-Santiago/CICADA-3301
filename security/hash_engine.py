@@ -1,9 +1,13 @@
+"""Module for the hash_engine component of the CICADA-3301 application."""
+
 import hashlib
 import re
 
 class HashEngine:
+    """Generate and identify hash values for cryptography challenges."""
 
     def generate(self, data):
+        """generate function."""
 
         if isinstance(data, bytes):
             data = data.decode('utf-8', errors='ignore')
@@ -12,6 +16,7 @@ class HashEngine:
         }
     
     def identify(self, hash_value):
+        """identify function."""
 
         # limpeza forte
         hash_value = hash_value.strip().lower()

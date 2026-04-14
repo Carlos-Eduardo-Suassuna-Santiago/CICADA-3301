@@ -1,9 +1,12 @@
+"""Module for the stego component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 from security.stego_engine import StegoEngine
 import base64
 import os
 
 class StegoCommand(BaseCommand):
+    """Command implementation for the stego command."""
 
     name = "stego"
     description = "Steganography operations"
@@ -12,9 +15,11 @@ class StegoCommand(BaseCommand):
     autocomplete = { 1: ["extract"]}
 
     def __init__(self):
+        """Initialize the object state."""
         self.engine = StegoEngine()
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) < 2:
             print("Usage: stego extract <image>")
@@ -30,7 +35,19 @@ class StegoCommand(BaseCommand):
         content = terminal.vfs.read_file(filename, terminal.auth.get_current_user())
         temp_path = None
 
-        if content:
+        if content is None:
+            print(f"File not found: {filename}")
+            return
+
+        # Handle stub text files with an embedded message
+        if isinstance(content, bytes):
+            if content.startswith(b"STEGOMSG:"):
+                print(content.split(b"STEGOMSG:", 1)[1].decode("utf-8", errors="ignore"))
+                return
+            temp_path = "/tmp/stego_temp.png"
+            with open(temp_path, "wb") as f:
+                f.write(content)
+        else:
             if content.startswith("STEGOMSG:"):
                 print(content.split("STEGOMSG:", 1)[1])
                 return

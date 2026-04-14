@@ -1,16 +1,21 @@
+"""Module for the decode component of the CICADA-3301 application."""
+
 from commands.base_command import BaseCommand
 from security.decoder import Decoder
 
 class DecodeCommand(BaseCommand):
+    """Command implementation for the decode command."""
 
     name = "decode"
     description = "Decode encoded text"
     usage = "decode <type> <content> or decode <file>"
 
     def __init__(self):
+        """Initialize the object state."""
         self.decoder = Decoder()
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) < 1:
             print("Usage: decode <type> <content> or decode <file>")
@@ -20,7 +25,7 @@ class DecodeCommand(BaseCommand):
         # If only one argument, try to read from file and auto-decode
         if len(args) == 1:
             content = terminal.vfs.read_file(args[0], terminal.auth.get_current_user())
-            if not content:
+            if content is None:
                 print("File not found or empty.")
                 return
             result = self.decoder.auto_decode(content)

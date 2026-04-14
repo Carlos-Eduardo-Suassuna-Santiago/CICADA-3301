@@ -1,18 +1,23 @@
+"""Module for the su component of the CICADA-3301 application."""
+
 import getpass
 from commands.base_command import BaseCommand
 
 class Colors:
+    """Colors class."""
     GREEN = '\033[92m'
     RED = '\033[91m'
     END = '\033[0m'
 
 class SuCommand(BaseCommand):
+    """Command implementation for the su command."""
 
     name = "su"
     description = "Switch to another user"
     usage = "su <username>"
 
     def execute(self, terminal, args):
+        """Execute the operation for this component."""
 
         if len(args) == 0:
             print("Usage: su <username>")

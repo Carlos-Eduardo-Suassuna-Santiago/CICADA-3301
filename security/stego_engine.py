@@ -1,9 +1,13 @@
+"""Module for the stego_engine component of the CICADA-3301 application."""
+
 from PIL import Image
 
 
 class StegoEngine:
+    """Extract hidden data from images using least-significant-bit steganography."""
 
     def extract_lsb(self, image_path):
+        """extract_lsb function."""
 
         try:
             img = Image.open(image_path)

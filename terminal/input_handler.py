@@ -1,5 +1,8 @@
+"""Module for the input_handler component of the CICADA-3301 application."""
+
 import sys
 import os
+
 
 #====================
 #WINDOWS
@@ -10,6 +13,7 @@ if os.name == 'nt':
     import msvcrt
 
     def getch_char():
+        """getch_char function."""
         return msvcrt.getch()
 
 #====================
@@ -17,11 +21,11 @@ if os.name == 'nt':
 #====================   
 
 else:
-
     import tty
     import termios
 
     def getch_char():
+        """getch_char function."""
 
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
@@ -32,254 +36,265 @@ else:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch.encode()  
-    
-    class InputHandler:
 
-        def __init__(self, terminal):
 
-            self.terminal = terminal
+class InputHandler:
+    """Handle interactive terminal input, history, autocomplete, and rendering."""
 
-            self.buffer = []
-            self.cursor = 0
+    def __init__(self, terminal):
+        """Initialize the object state."""
 
-            self.history_index = 0
+        self.terminal = terminal
 
-        def process_input(self, prompt):
+        self.buffer = []
+        self.cursor = 0
 
-            self.buffer = []
-            self.cursor = 0
+        self.history_index = 0
 
-            self.history_index = len(self.terminal.history)
+    def process_input(self, prompt):
+        """process_input function."""
+
+        self.buffer = []
+        self.cursor = 0
+
+        self.history_index = len(self.terminal.history)
+        
+        print(prompt, end='', flush=True)
+
+        while True:
+
+            ch = getch_char()
+
+            #ENTER
+            if ch in [b'\r', b'\n']:
+                print()
+                return ''.join(self.buffer)
             
-            print(prompt, end='', flush=True)
+            #BACKSPACE
+            elif ch in [b'\x08', b'\x7f']:
 
-            while True:
+                if self.cursor > 0:
 
-                ch = getch_char()
+                    self.cursor -= 1
+                    self.buffer.pop(self.cursor)
+            
+            #SETAS (Windows)
+            elif ch == b'\xe0':
 
-                #ENTER
-                if ch in [b'\r', b'\n']:
-                    print()
-                    return ''.join(self.buffer)
-                
-                #BACKSPACE
-                elif ch in [b'\x08', b'\x7f']:
+                arrow = getch_char()
 
+                if arrow == b'K':  # Left arrow
                     if self.cursor > 0:
-
                         self.cursor -= 1
-                        self.buffer.pop(self.cursor)
-                
-                #SETAS (Windows)
-                elif ch == b'\xe0':
-
-                    arrow = getch_char()
-
-                    if arrow == b'K':  # Left arrow
-                        if self.cursor > 0:
-                            self.cursor -= 1
-                    elif arrow == b'M':  # Right arrow
-                        if self.cursor < len(self.buffer):
-                            self.cursor += 1
-                    elif arrow == b'H':  # Up arrow
-                        self.history_up()
-                    elif arrow == b'P':  # Down arrow   
-                        self.history_down()
-
-                #SETAS (Linux/Mac)
-                elif ch == b'\x1b':
-
-                    next1 = getch_char()
-                    next2 = getch_char()
-
-                    if next2 == b'D':  # Left arrow
-                        if self.cursor > 0:
-                            self.cursor -= 1
-                    elif next2 == b'C':  # Right arrow
-                        if self.cursor < len(self.buffer):
-                            self.cursor += 1
-                    elif next2 == b'A':  # Up arrow
-                        self._history_up()
-                    elif next2 == b'B':  # Down arrow
-                        self._history_down()
-                
-                #TAB
-                elif ch == b"\t":
-                    self._autocomplete()
-
-                #CARACTERE NORMAL
-                else:
-                    
-                    try:
-                        char = ch.decode()
-                        self.buffer.insert(self.cursor, char)
+                elif arrow == b'M':  # Right arrow
+                    if self.cursor < len(self.buffer):
                         self.cursor += 1
-                    except:
-                        pass
+                elif arrow == b'H':  # Up arrow
+                    self._history_up()
+                elif arrow == b'P':  # Down arrow   
+                    self._history_down()
 
-                self._render(prompt)
+            #SETAS (Linux/Mac)
+            elif ch == b'\x1b':
 
-        def _render(self, prompt):
+                next1 = getch_char()
+                next2 = getch_char()
+
+                if next2 == b'D':  # Left arrow
+                    if self.cursor > 0:
+                        self.cursor -= 1
+                elif next2 == b'C':  # Right arrow
+                    if self.cursor < len(self.buffer):
+                        self.cursor += 1
+                elif next2 == b'A':  # Up arrow
+                    self._history_up()
+                elif next2 == b'B':  # Down arrow
+                    self._history_down()
             
-            #LIMPA A LINHA
-            print("\r", end='')
-            print(" " * (len(prompt) + len(self.buffer) + 5), end='')
+            #TAB
+            elif ch == b"\t":
+                self._autocomplete()
 
-            #REDESENHA
-            print("\r", end='')
-            print(prompt + ''.join(self.buffer), end='')
-
-            #POSICIONA O CURSOR
-
-            pos = len(prompt) + self.cursor
-
-            print(f"\r{prompt}{''.join(self.buffer[:self.cursor])}", end='', flush=True)
-        
-        def _history_up(self):
-
-            if not self.terminal.history:
-                return
-            
-            self.history_index = max(0, self.history_index - 1)
-            self.buffer = list(self.terminal.history[self.history_index])
-            self.cursor = len(self.buffer)
-
-        def _history_down(self):
-            
-            if not self.terminal.history:
-                return
-            
-            self.history_index = min(len(self.terminal.history) - 1, self.history_index + 1)
-            self.buffer = list(self.terminal.history[self.history_index])
-            self.cursor = len(self.buffer)
-
-        def _autocomplete(self):
-
-            text = ''.join(self.buffer)
-            tokens = text.split()
-
-            # =========================
-            # AUTOCOMPLETE DE COMANDO
-            # =========================
-            if len(tokens) == 0:
-                return
-
-            if len(tokens) == 1 and not text.endswith(" "):
-
-                partial = tokens[0]
-
-                matches = [
-                    cmd for cmd in self.terminal.commands.keys()
-                    if cmd.startswith(partial)
-                ]
-
-                self._apply_match(matches, partial)
-                return
-
-            # =========================
-            # AUTOCOMPLETE CONTEXTUAL
-            # =========================
-            command_name = tokens[0]
-            command = self.terminal.commands.get(command_name)
-
-            arg_index = len(tokens) - 1
-
-            # se terminou com espaço → novo argumento
-            if text.endswith(" "):
-                arg_index += 1
-                partial = ""
+            #CARACTERE NORMAL
             else:
-                partial = tokens[-1]
-
-            # =========================
-            # CONTEXTO DO COMANDO
-            # =========================
-            if command and hasattr(command, "autocomplete"):
-
-                options = command.autocomplete.get(arg_index)
-
-                if options:
-
-                    matches = [opt for opt in options if opt.startswith(partial)]
-
-                    self._apply_path_match(matches, tokens, base_path=None)
-                    return
-
-            # =========================
-            # AUTOCOMPLETE DE PATH
-            # =========================
-            self._autocomplete_path(tokens, partial)
-        
-        def _autocomplete_path(self, tokens, partial):
-
-            vfs = self.terminal.vfs
-
-            if "/" in partial:
-                base_path, partial_name = partial.rsplit("/", 1)
-            else:
-                base_path = ""
-                partial_name = partial
-
-            path_parts = vfs.resolve_partial(base_path)
-
-            node = vfs._get_node(path_parts)
-
-            if not node or node ["type"] != "dir":
-                return
-            
-            matches = []
-
-            for name, iten in node["content"].items():
-
-                if name.startswith(partial_name):
-
-                    if iten["type"] == "dir":
-                        matches.append(name + "/")
-                    else:
-                        matches.append(name)
-
-            self._apply_path_match(matches, tokens, base_path)
-            self._render("")
-
-
-        def _apply_path_match(self, matches, tokens, base_path):
-
-            if len(matches) == 1:
                 
-                match = matches[0]
+                try:
+                    char = ch.decode()
+                    self.buffer.insert(self.cursor, char)
+                    self.cursor += 1
+                except:
+                    pass
 
-                if base_path:
+            self._render(prompt)
 
-                    new_token = base_path + "/" + match
+    def _render(self, prompt):
+        """_render function."""
+        
+        #LIMPA A LINHA
+        print("\r", end='')
+        print(" " * (len(prompt) + len(self.buffer) + 5), end='')
 
+        #REDESENHA
+        print("\r", end='')
+        print(prompt + ''.join(self.buffer), end='')
+
+        #POSICIONA O CURSOR
+
+        pos = len(prompt) + self.cursor
+
+        print(f"\r{prompt}{''.join(self.buffer[:self.cursor])}", end='', flush=True)
+    
+    def _history_up(self):
+        """_history_up function."""
+
+        if not self.terminal.history:
+            return
+        
+        self.history_index = max(0, self.history_index - 1)
+        self.buffer = list(self.terminal.history[self.history_index])
+        self.cursor = len(self.buffer)
+
+    def _history_down(self):
+        """_history_down function."""
+        
+        if not self.terminal.history:
+            return
+        
+        self.history_index = min(len(self.terminal.history) - 1, self.history_index + 1)
+        self.buffer = list(self.terminal.history[self.history_index])
+        self.cursor = len(self.buffer)
+
+    def _autocomplete(self):
+        """_autocomplete function."""
+
+        text = ''.join(self.buffer)
+        tokens = text.split()
+
+        # =========================
+        # AUTOCOMPLETE DE COMANDO
+        # =========================
+        if len(tokens) == 0:
+            return
+
+        if len(tokens) == 1 and not text.endswith(" "):
+
+            partial = tokens[0]
+
+            matches = [
+                cmd for cmd in self.terminal.commands.keys()
+                if cmd.startswith(partial)
+            ]
+
+            self._apply_match(matches, partial)
+            return
+
+        # =========================
+        # AUTOCOMPLETE CONTEXTUAL
+        # =========================
+        command_name = tokens[0]
+        command = self.terminal.commands.get(command_name)
+
+        arg_index = len(tokens) - 1
+
+        # se terminou com espaço → novo argumento
+        if text.endswith(" "):
+            arg_index += 1
+            partial = ""
+        else:
+            partial = tokens[-1]
+
+        # =========================
+        # CONTEXTO DO COMANDO
+        # =========================
+        if command and hasattr(command, "autocomplete"):
+
+            options = command.autocomplete.get(arg_index)
+
+            if options:
+
+                matches = [opt for opt in options if opt.startswith(partial)]
+
+                self._apply_path_match(matches, tokens, base_path=None)
+                return
+
+        # =========================
+        # AUTOCOMPLETE DE PATH
+        # =========================
+        self._autocomplete_path(tokens, partial)
+    
+    def _autocomplete_path(self, tokens, partial):
+        """_autocomplete_path function."""
+
+        vfs = self.terminal.vfs
+
+        if "/" in partial:
+            base_path, partial_name = partial.rsplit("/", 1)
+        else:
+            base_path = ""
+            partial_name = partial
+
+        path_parts = vfs.resolve_partial(base_path)
+
+        node = vfs._get_node(path_parts)
+
+        if not node or node ["type"] != "dir":
+            return
+        
+        matches = []
+
+        for name, iten in node["content"].items():
+
+            if name.startswith(partial_name):
+
+                if iten["type"] == "dir":
+                    matches.append(name + "/")
                 else:
+                    matches.append(name)
 
-                    new_token = match
+        self._apply_path_match(matches, tokens, base_path)
+        self._render("")
 
-                tokens[-1] = new_token
 
-                new_text = " ".join(tokens)
+    def _apply_path_match(self, matches, tokens, base_path):
+        """_apply_path_match function."""
 
-                self.buffer = list(new_text)
-                self.cursor = len(self.buffer)
+        if len(matches) == 1:
+            
+            match = matches[0]
 
-            elif len(matches) > 1:
+            if base_path:
 
-                print("\n")
-                for m in matches:
-                    print(m)
+                new_token = base_path + "/" + match
 
-                input("\nPress Enter...")
+            else:
 
-        def _print_matches(self, matches):
+                new_token = match
+
+            tokens[-1] = new_token
+
+            new_text = " ".join(tokens)
+
+            self.buffer = list(new_text)
+            self.cursor = len(self.buffer)
+
+        elif len(matches) > 1:
 
             print("\n")
-
             for m in matches:
+                print(m)
 
-                if m.endswith("/"):
-                    print(f"[DIR] {m}")
-                else:
-                    print(f"[FILE] {m}")
-                
-            input("\nPress Enter...") 
+            input("\nPress Enter...")
+
+    def _print_matches(self, matches):
+        """_print_matches function."""
+
+        print("\n")
+
+        for m in matches:
+
+            if m.endswith("/"):
+                print(f"[DIR] {m}")
+            else:
+                print(f"[FILE] {m}")
+            
+        input("\nPress Enter...") 

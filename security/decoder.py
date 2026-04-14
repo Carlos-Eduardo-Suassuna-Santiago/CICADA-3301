@@ -1,8 +1,12 @@
+"""Module for the decoder component of the CICADA-3301 application."""
+
 import base64
 
 class Decoder:
+    """Provide various decoding routines for common puzzle encodings."""
 
     def __init__(self):
+        """Initialize the object state."""
         # Morse code dictionary
         self.morse_dict = {
             '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E',
@@ -16,18 +20,21 @@ class Decoder:
         }
 
     def decode_base64(self, data):
+        """decode_base64 function."""
         try:
             return base64.b64decode(data).decode('utf-8')
         except (ValueError, UnicodeDecodeError):
             return None
         
     def decode_hex(self, data):
+        """decode_hex function."""
         try:
             return bytes.fromhex(data).decode('utf-8')
         except (ValueError, UnicodeDecodeError):
             return None
         
     def decode_binary(self, data):
+        """decode_binary function."""
         try:
             chars = data.split()
             return ''.join([chr(int(char, 2)) for char in chars])
@@ -35,6 +42,7 @@ class Decoder:
             return None
         
     def decode_morse(self, data):
+        """decode_morse function."""
         try:
             words = data.split(' / ')
             decoded_words = []
@@ -47,6 +55,7 @@ class Decoder:
             return None
         
     def decode_atbash(self, data):
+        """decode_atbash function."""
         try:
             result = []
             for char in data.upper():
@@ -60,6 +69,7 @@ class Decoder:
             return None
         
     def decode_railfence(self, data, rails=3):
+        """decode_railfence function."""
         try:
             if rails <= 1:
                 return data
@@ -94,6 +104,7 @@ class Decoder:
             return None
         
     def decode_bacon(self, data):
+        """decode_bacon function."""
         try:
             # Bacon cipher: A=AAAAA, B=AAAAB, etc.
             bacon_dict = {}
@@ -116,6 +127,7 @@ class Decoder:
             return None
         
     def auto_decode(self, data):
+        """auto_decode function."""
 
         if "-----BEGIN" in data and "-----END" in data:
             lines = [line.strip() for line in data.splitlines() if line.strip() and not line.strip().startswith("-----")]
