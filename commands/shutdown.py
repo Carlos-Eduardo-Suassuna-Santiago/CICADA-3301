@@ -16,7 +16,12 @@ class ShutdownCommand(BaseCommand):
         """Execute the operation for this component."""
         
         terminal.logger.log_shutdown()
-        terminal.exiting = True
 
-        print("Shutting down...")
-        sleep(3)
+        print("Desligando em 3 segundos...")
+        sleep(1)
+        print("2...")
+        sleep(1)
+        print("1...")
+        sleep(1)
+
+        terminal.exiting = True

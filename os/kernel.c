@@ -1709,6 +1709,14 @@ static volatile uint8_t kb_tail = 0;
 static volatile uint32_t timer_ticks = 0;
 static volatile uint32_t worker_cycles = 0;
 
+/* PIT divisor=1193 → ~1000 Hz; wait for the given number of ticks */
+static void kernel_sleep_ticks(uint32_t ticks) {
+    uint32_t start = timer_ticks;
+    while ((timer_ticks - start) < ticks) {
+        __asm__ __volatile__("hlt");
+    }
+}
+
 #define TASK_COUNT 3
 #define TASK_STACK_SIZE 1024
 uint32_t task_esp[TASK_COUNT];
@@ -3040,6 +3048,13 @@ reparse_line:
         }
 
         if (strcmp(line, "shutdown") == 0) {
+            puts("Desligando em 3 segundos...\n");
+            /* PIT at ~1000 Hz: 1000 ticks ≈ 1 second */
+            kernel_sleep_ticks(1000);
+            puts("2...\n");
+            kernel_sleep_ticks(1000);
+            puts("1...\n");
+            kernel_sleep_ticks(1000);
             system_poweroff();
             continue;
         }
