@@ -53,6 +53,12 @@ Thumbs.db
 # Generated terminal history
 history
 
+# OS build artifacts
+/os/kernel.bin
+/os/os.iso
+/os/isodir/
+/os/*.o
+
 # Keep repository data in version control
 !system_data/filesystem.json
 !system_data/users.json
