@@ -2,7 +2,7 @@
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
-#define UI_HEADER_LINES 10
+#define UI_HEADER_LINES 11
 #define VGA_MEMORY ((volatile uint16_t *)0xB8000)
 #define SERIAL_PORT 0x3F8
 
@@ -1773,6 +1773,13 @@ static volatile uint8_t kb_head = 0;
 static volatile uint8_t kb_tail = 0;
 static volatile uint32_t timer_ticks = 0;
 static volatile uint32_t worker_cycles = 0;
+static volatile uint8_t kb_ext = 0;
+static volatile uint8_t kb_break = 0;
+
+#define KEY_LEFT  0x11
+#define KEY_RIGHT 0x12
+#define KEY_UP    0x13
+#define KEY_DOWN  0x14
 
 #define TASK_COUNT 3
 #define TASK_STACK_SIZE 1024
@@ -1847,6 +1854,51 @@ void timer_handler(void) {
 
 void keyboard_handler(void) {
     uint8_t scancode = inb(0x60);
+
+    if (scancode == 0xE0) {
+        kb_ext = 1;
+        return;
+    }
+
+    if (scancode == 0xF0) {
+        kb_break = 1;
+        return;
+    }
+
+    if (kb_ext) {
+        char nav = 0;
+
+        if ((scancode & 0x80) || kb_break) {
+            kb_ext = 0;
+            kb_break = 0;
+            return;
+        }
+
+        if (scancode == 0x4B || scancode == 0x6B) {
+            nav = KEY_LEFT;
+        } else if (scancode == 0x4D || scancode == 0x74) {
+            nav = KEY_RIGHT;
+        } else if (scancode == 0x48 || scancode == 0x75) {
+            nav = KEY_UP;
+        } else if (scancode == 0x50 || scancode == 0x72) {
+            nav = KEY_DOWN;
+        }
+
+        kb_ext = 0;
+        kb_break = 0;
+
+        if (nav) {
+            keyboard_buffer[kb_head] = nav;
+            kb_head = (kb_head + 1) & 0xFF;
+        }
+        return;
+    }
+
+    if (kb_break) {
+        kb_break = 0;
+        return;
+    }
+
     if (scancode & 0x80) {
         return;
     }
@@ -1889,6 +1941,7 @@ static void read_line(char *buffer, int max_length) {
     int rendered_length = 0;
     int history_index = -1;
     int draft_len = 0;
+    int ansi_state = 0;
     char draft_buffer[128];
     uint16_t line_start = cursor_pos;
     int line_capacity = VGA_WIDTH - (line_start % VGA_WIDTH);
@@ -1912,79 +1965,110 @@ static void read_line(char *buffer, int max_length) {
         char c = input_read_char();
         uint8_t uc = (uint8_t)c;
 
-        if (uc == 0x1B) {
-            if (serial_has_data()) {
-                char seq1 = (char)inb(SERIAL_PORT);
-                if (seq1 == '[' && serial_has_data()) {
-                    char seq2 = (char)inb(SERIAL_PORT);
-                    if (seq2 == 'A') {
-                        if (history_count > 0) {
-                            if (history_index < 0) {
-                                draft_len = length;
-                                for (int i = 0; i < draft_len; ++i) {
-                                    draft_buffer[i] = buffer[i];
-                                }
-                                draft_buffer[draft_len] = '\0';
-                                history_index = history_count - 1;
-                            } else if (history_index > 0) {
-                                history_index--;
-                            }
+        if (ansi_state == 1) {
+            if (c == '[') {
+                ansi_state = 2;
+            } else {
+                ansi_state = 0;
+            }
+            continue;
+        }
 
-                            int src_len = str_len(command_history[history_index]);
-                            if (src_len > line_limit) {
-                                src_len = line_limit;
-                            }
-                            for (int i = 0; i < src_len; ++i) {
-                                buffer[i] = command_history[history_index][i];
-                            }
-                            buffer[src_len] = '\0';
-                            length = src_len;
-                            cursor_index = length;
-                            render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
-                            rendered_length = length;
-                        }
-                    } else if (seq2 == 'B') {
-                        if (history_index >= 0) {
-                            if (history_index < history_count - 1) {
-                                history_index++;
-                                int src_len = str_len(command_history[history_index]);
-                                if (src_len > line_limit) {
-                                    src_len = line_limit;
-                                }
-                                for (int i = 0; i < src_len; ++i) {
-                                    buffer[i] = command_history[history_index][i];
-                                }
-                                buffer[src_len] = '\0';
-                                length = src_len;
-                            } else {
-                                history_index = -1;
-                                length = draft_len;
-                                if (length > line_limit) {
-                                    length = line_limit;
-                                }
-                                for (int i = 0; i < length; ++i) {
-                                    buffer[i] = draft_buffer[i];
-                                }
-                                buffer[length] = '\0';
-                            }
-                            cursor_index = length;
-                            render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
-                            rendered_length = length;
-                        }
-                    } else if (seq2 == 'D') {
-                        if (cursor_index > 0) {
-                            cursor_index--;
-                            cursor_pos = line_start + (uint16_t)cursor_index;
-                            serial_puts_raw("\x1b[D");
-                        }
-                    } else if (seq2 == 'C') {
-                        if (cursor_index < length) {
-                            cursor_index++;
-                            cursor_pos = line_start + (uint16_t)cursor_index;
-                            serial_puts_raw("\x1b[C");
-                        }
+        if (ansi_state == 2) {
+            ansi_state = 0;
+            if (c == 'A') {
+                c = KEY_UP;
+            } else if (c == 'B') {
+                c = KEY_DOWN;
+            } else if (c == 'C') {
+                c = KEY_RIGHT;
+            } else if (c == 'D') {
+                c = KEY_LEFT;
+            } else {
+                continue;
+            }
+            uc = (uint8_t)c;
+        }
+
+        if (uc == 0x1B) {
+            ansi_state = 1;
+            continue;
+        }
+
+        if (c == KEY_UP) {
+            if (history_count > 0) {
+                if (history_index < 0) {
+                    draft_len = length;
+                    for (int i = 0; i < draft_len; ++i) {
+                        draft_buffer[i] = buffer[i];
                     }
+                    draft_buffer[draft_len] = '\0';
+                    history_index = history_count - 1;
+                } else if (history_index > 0) {
+                    history_index--;
                 }
+
+                int src_len = str_len(command_history[history_index]);
+                if (src_len > line_limit) {
+                    src_len = line_limit;
+                }
+                for (int i = 0; i < src_len; ++i) {
+                    buffer[i] = command_history[history_index][i];
+                }
+                buffer[src_len] = '\0';
+                length = src_len;
+                cursor_index = length;
+                render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+                rendered_length = length;
+            }
+            continue;
+        }
+
+        if (c == KEY_DOWN) {
+            if (history_index >= 0) {
+                if (history_index < history_count - 1) {
+                    history_index++;
+                    int src_len = str_len(command_history[history_index]);
+                    if (src_len > line_limit) {
+                        src_len = line_limit;
+                    }
+                    for (int i = 0; i < src_len; ++i) {
+                        buffer[i] = command_history[history_index][i];
+                    }
+                    buffer[src_len] = '\0';
+                    length = src_len;
+                } else {
+                    history_index = -1;
+                    length = draft_len;
+                    if (length > line_limit) {
+                        length = line_limit;
+                    }
+                    for (int i = 0; i < length; ++i) {
+                        buffer[i] = draft_buffer[i];
+                    }
+                    buffer[length] = '\0';
+                }
+                cursor_index = length;
+                render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+                rendered_length = length;
+            }
+            continue;
+        }
+
+        if (c == KEY_LEFT) {
+            if (cursor_index > 0) {
+                cursor_index--;
+                cursor_pos = line_start + (uint16_t)cursor_index;
+                serial_puts_raw("\x1b[D");
+            }
+            continue;
+        }
+
+        if (c == KEY_RIGHT) {
+            if (cursor_index < length) {
+                cursor_index++;
+                cursor_pos = line_start + (uint16_t)cursor_index;
+                serial_puts_raw("\x1b[C");
             }
             continue;
         }
