@@ -1,14 +1,18 @@
 #include <stdint.h>
 
-#define VGA_WIDTH 80
-#define VGA_HEIGHT 25
-#define UI_HEADER_LINES 11
+#define VGA_DEFAULT_WIDTH 80
+#define VGA_DEFAULT_HEIGHT 25
+#define UI_HEADER_DEFAULT_LINES 11
+#define UI_HEADER_COMPACT_LINES 6
 #define VGA_MEMORY ((volatile uint16_t *)0xB8000)
 #define SERIAL_PORT 0x3F8
 
 static volatile uint16_t *const VGA = VGA_MEMORY;
 static uint16_t cursor_pos = 0;
 static const uint8_t default_color = 0x07;
+static uint16_t screen_width = VGA_DEFAULT_WIDTH;
+static uint16_t screen_height = VGA_DEFAULT_HEIGHT;
+static uint16_t ui_header_lines = UI_HEADER_DEFAULT_LINES;
 
 static inline uint8_t inb(uint16_t port) {
     uint8_t value;
@@ -58,6 +62,43 @@ static void serial_puts_raw(const char *str) {
     }
 }
 
+static uint16_t lowmem_read16(uint32_t addr) {
+    uint16_t value;
+    __asm__ volatile ("movw (%1), %0" : "=r" (value) : "r" ((uintptr_t)addr));
+    return value;
+}
+
+static uint8_t lowmem_read8(uint32_t addr) {
+    uint8_t value;
+    __asm__ volatile ("movb (%1), %0" : "=r" (value) : "r" ((uintptr_t)addr));
+    return value;
+}
+
+static void detect_text_mode_geometry(void) {
+    uint16_t cols = lowmem_read16(0x044A);
+    uint16_t rows = (uint16_t)lowmem_read8(0x0484) + 1;
+
+    if (cols < 40 || cols > 240) {
+        cols = VGA_DEFAULT_WIDTH;
+    }
+    if (rows < 15 || rows > 120) {
+        rows = VGA_DEFAULT_HEIGHT;
+    }
+
+    screen_width = cols;
+    screen_height = rows;
+
+    if (screen_width < 80) {
+        ui_header_lines = UI_HEADER_COMPACT_LINES;
+    } else {
+        ui_header_lines = UI_HEADER_DEFAULT_LINES;
+    }
+
+    if (ui_header_lines >= screen_height) {
+        ui_header_lines = (screen_height > 3) ? (screen_height - 3) : 1;
+    }
+}
+
 struct gdt_entry {
     uint16_t limit_low;
     uint16_t base_low;
@@ -93,27 +134,28 @@ static volatile uint32_t timer_ticks;
 
 static void print_boot_logo(void);
 static int str_contains(const char *text, const char *pattern);
+static void sha256_to_hex(const char *input, char *out_hex, int out_hex_len);
 
 extern void irq0_handler(void);
 extern void irq1_handler(void);
 extern void isr80_handler(void);
 
 static void scroll(void) {
-    int start_row = UI_HEADER_LINES;
-    if (start_row < 0 || start_row >= VGA_HEIGHT) {
+    int start_row = ui_header_lines;
+    if (start_row < 0 || start_row >= screen_height) {
         start_row = 0;
     }
 
-    for (int y = start_row + 1; y < VGA_HEIGHT; ++y) {
-        for (int x = 0; x < VGA_WIDTH; ++x) {
-            VGA[(y - 1) * VGA_WIDTH + x] = VGA[y * VGA_WIDTH + x];
+    for (int y = start_row + 1; y < screen_height; ++y) {
+        for (int x = 0; x < screen_width; ++x) {
+            VGA[(y - 1) * screen_width + x] = VGA[y * screen_width + x];
         }
     }
     uint16_t blank = ' ' | (default_color << 8);
-    for (int x = 0; x < VGA_WIDTH; ++x) {
-        VGA[(VGA_HEIGHT - 1) * VGA_WIDTH + x] = blank;
+    for (int x = 0; x < screen_width; ++x) {
+        VGA[(screen_height - 1) * screen_width + x] = blank;
     }
-    cursor_pos = (VGA_HEIGHT - 1) * VGA_WIDTH;
+    cursor_pos = (screen_height - 1) * screen_width;
 }
 
 static void putchar(char c) {
@@ -122,12 +164,12 @@ static void putchar(char c) {
     }
 
     if (c == '\n') {
-        cursor_pos += VGA_WIDTH - (cursor_pos % VGA_WIDTH);
+        cursor_pos += screen_width - (cursor_pos % screen_width);
     } else {
         VGA[cursor_pos++] = (uint16_t)c | (default_color << 8);
     }
 
-    if (cursor_pos >= VGA_WIDTH * VGA_HEIGHT) {
+    if (cursor_pos >= screen_width * screen_height) {
         scroll();
     }
     serial_putchar(c);
@@ -137,6 +179,30 @@ static void puts(const char *str) {
     while (*str) {
         putchar(*str++);
     }
+}
+
+static int cstr_len(const char *s) {
+    int n = 0;
+    while (s[n] != '\0') {
+        n++;
+    }
+    return n;
+}
+
+static void puts_centered_line(const char *line) {
+    int len = cstr_len(line);
+    int padding = 0;
+
+    if (len < (int)screen_width) {
+        padding = ((int)screen_width - len) / 2;
+    }
+
+    for (int i = 0; i < padding; ++i) {
+        putchar(' ');
+    }
+
+    puts(line);
+    putchar('\n');
 }
 
 static void erase_prev_char(uint16_t min_cursor) {
@@ -211,12 +277,16 @@ static const char *skip_spaces(const char *s) {
 struct file_entry {
     int used;
     char path[128];
+    char owner[32];
+    char perm[4];
     char content[512];
 };
 
 struct dir_entry {
     int used;
     char path[128];
+    char owner[32];
+    char perm[4];
 };
 
 #define MAX_FILES 64
@@ -234,18 +304,24 @@ static int history_count = 0;
 struct user_entry {
     int used;
     char name[32];
-    char pass[32];
+    char pass_hash[80];
     int is_admin;
 };
 
 static struct user_entry users[MAX_USERS];
 static int current_user = 0;
+static int session_authenticated = 0;
+static uint32_t session_last_activity_ticks = 0;
 static char system_logs[MAX_LOGS][128];
 static int log_count = 0;
+
+#define SESSION_TIMEOUT_TICKS 30000
 
 struct mission_action {
     const char *path;
     const char *content;
+    const char *owner;
+    const char *perm;
 };
 
 struct mission_def {
@@ -264,89 +340,14 @@ struct mission_def {
     int on_complete_count;
 };
 
-static const char *lvl1_cmds[] = {"ls", "cd", "pwd", "cat", "clear", "decode", "help", "history", "whoami", "submit", "manual", "hint", "shutdown"};
-static const char *lvl2_cmds[] = {"ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "help", "history", "whoami", "submit", "manual", "hint", "shutdown"};
-static const char *lvl3_cmds[] = {"ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "help", "history", "whoami", "submit", "manual", "hint", "shutdown"};
-static const char *lvl4_cmds[] = {"ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "help", "history", "whoami", "submit", "manual", "hint", "shutdown"};
-
-static const char *all_shell_commands[] = {
-    "help", "clear", "echo", "pwd", "ls", "cd", "cat", "touch", "mkdir", "rmdir", "rm",
-    "write", "append", "cp", "mv", "history", "find", "tree", "login", "logout", "passwd",
-    "su", "sudo", "who", "whoami", "uname", "ps", "logread", "manual", "decode", "decrypt",
-    "hash", "stego", "analyze", "exploit", "submit", "ticks", "tasks", "syscall", "hint",
-    "shutdown", "exit"
-};
-static const char *lvl5_cmds[] = {"ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze", "help", "history", "whoami", "submit", "manual", "hint", "shutdown"};
-static const char *lvl6_cmds[] = {
-    "ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze",
-    "login", "logout", "passwd", "su", "sudo", "who", "whoami", "ps", "logread", "manual",
-    "history", "help", "submit", "hint", "exploit", "shutdown"
-};
-static const char *lvl7_cmds[] = {
-    "ls", "cd", "pwd", "cat", "clear", "decode", "decrypt", "hash", "stego", "analyze",
-    "login", "logout", "passwd", "su", "sudo", "who", "whoami", "ps", "logread", "manual",
-    "history", "help", "submit", "hint", "exploit", "shutdown"
+struct command_meta {
+    const char *name;
+    const char *description;
+    const char *usage;
 };
 
-static const char *lvl1_hints[] = {
-    "O arquivo message.txt esta em Base64.",
-    "Use decode no conteudo do arquivo.",
-    "A resposta descreve o proximo passo."
-};
-static const char *lvl2_hints[] = {
-    "letter.txt usa cifra de Cesar.",
-    "Tente deslocamento 3.",
-    "A frase decifrada aponta para a flag."
-};
-static const char *lvl3_hints[] = {
-    "password.hash parece SHA256.",
-    "Use hash para testar candidatos.",
-    "password123 eh o valor esperado nesta fase."
-};
-static const char *lvl4_hints[] = {
-    "image.png contem mensagem textual simulada.",
-    "Use stego para extrair pistas.",
-    "A dica aponta para logs do sistema."
-};
-static const char *lvl5_hints[] = {
-    "Leia /var/log/system.log.",
-    "Use analyze para resumir texto.",
-    "A pista desbloqueia /usr/bin/backup.sh."
-};
-static const char *lvl6_hints[] = {
-    "backup.sh representa um vetor de escalonamento.",
-    "Use exploit para simular a exploracao.",
-    "Depois submeta a flag da fase."
-};
-static const char *lvl7_hints[] = {
-    "Abra /root/final.key.",
-    "Decode o bloco Base64 interno.",
-    "A mensagem final conclui o CTF."
-};
-
-static const struct mission_action lvl1_start[] = {{"/home/guest/message.txt", "SGVsbG8gSW52ZXN0aWdhdG9y"}};
-static const struct mission_action lvl1_done[] = {{"/home/guest/letter.txt", "Brx pdB irxqg wkh qhaw foxh"}};
-static const struct mission_action lvl2_start[] = {{"/home/guest/letter.txt", "Brx pdB irxqg wkh qhaw foxh"}};
-static const struct mission_action lvl2_done[] = {{"/home/guest/password.hash", "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"}};
-static const struct mission_action lvl3_start[] = {{"/home/guest/password.hash", "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"}};
-static const struct mission_action lvl3_done[] = {{"/home/guest/image.png", "STEGOMSG:Check the system logs"}};
-static const struct mission_action lvl4_start[] = {{"/home/guest/image.png", "STEGOMSG:Check the system logs"}};
-static const struct mission_action lvl4_done[] = {{"/var/log/system.log", "failed login root\nfailed login root\nsuccessful login analyst"}};
-static const struct mission_action lvl5_start[] = {{"/var/log/system.log", "failed login root\nfailed login root\nsuccessful login analyst"}};
-static const struct mission_action lvl5_done[] = {{"/usr/bin/backup.sh", "#!/bin/bash\necho 'Running backup...'\n"}};
-static const struct mission_action lvl6_start[] = {{"/usr/bin/backup.sh", "#!/bin/bash\necho 'Running backup...'\n"}};
-static const struct mission_action lvl7_start[] = {{"/root/final.key", "-----BEGIN MESSAGE-----\nV2VsY29tZSB0byB0aGUgaW5uZXIgY2lyY2xlLg==\n-----END MESSAGE-----\n"}};
-static const struct mission_action lvl7_done[] = {{"/root/congratulations.txt", "Welcome to the inner circle."}};
-
-static const struct mission_def missions[] = {
-    {1, "Mensagem Codificada", "Decode o texto Base64 em message.txt", 50, "flag{hello_investigator}", lvl1_cmds, (int)(sizeof(lvl1_cmds)/sizeof(lvl1_cmds[0])), lvl1_hints, (int)(sizeof(lvl1_hints)/sizeof(lvl1_hints[0])), lvl1_start, 1, lvl1_done, 1},
-    {2, "Cifra de Cesar", "Decifre letter.txt com Cesar", 75, "flag{caesar_clue}", lvl2_cmds, (int)(sizeof(lvl2_cmds)/sizeof(lvl2_cmds[0])), lvl2_hints, (int)(sizeof(lvl2_hints)/sizeof(lvl2_hints[0])), lvl2_start, 1, lvl2_done, 1},
-    {3, "Hash Misterioso", "Identifique hash e senha", 100, "flag{password123}", lvl3_cmds, (int)(sizeof(lvl3_cmds)/sizeof(lvl3_cmds[0])), lvl3_hints, (int)(sizeof(lvl3_hints)/sizeof(lvl3_hints[0])), lvl3_start, 1, lvl3_done, 1},
-    {4, "Arquivo Oculto", "Extraia mensagem de image.png", 125, "flag{check_the_logs}", lvl4_cmds, (int)(sizeof(lvl4_cmds)/sizeof(lvl4_cmds[0])), lvl4_hints, (int)(sizeof(lvl4_hints)/sizeof(lvl4_hints[0])), lvl4_start, 1, lvl4_done, 1},
-    {5, "Analise de Logs", "Use logs para achar proximo passo", 150, "flag{log_analysis_success}", lvl5_cmds, (int)(sizeof(lvl5_cmds)/sizeof(lvl5_cmds[0])), lvl5_hints, (int)(sizeof(lvl5_hints)/sizeof(lvl5_hints[0])), lvl5_start, 1, lvl5_done, 1},
-    {6, "Escalonamento", "Explore backup.sh para acesso root", 175, "flag{root_access_granted}", lvl6_cmds, (int)(sizeof(lvl6_cmds)/sizeof(lvl6_cmds[0])), lvl6_hints, (int)(sizeof(lvl6_hints)/sizeof(lvl6_hints[0])), lvl6_start, 1, 0, 0},
-    {7, "Camada Final", "Decodifique /root/final.key", 200, "flag{welcome_to_the_inner_circle}", lvl7_cmds, (int)(sizeof(lvl7_cmds)/sizeof(lvl7_cmds[0])), lvl7_hints, (int)(sizeof(lvl7_hints)/sizeof(lvl7_hints[0])), lvl7_start, 1, lvl7_done, 1}
-};
+/* Missao/configuracao carregada de um arquivo de dados compile-time. */
+#include "mission_data.h"
 
 static const int mission_count = (int)(sizeof(missions) / sizeof(missions[0]));
 static int mission_current = 0;
@@ -406,16 +407,54 @@ static void print_ls_cell(const char *name, int is_dir, int col_width) {
     }
 }
 
+static int file_find(const char *path);
+
+static void log_event_append_file(const char *msg) {
+    int idx = file_find("/var/log/system.log");
+    if (idx < 0) {
+        return;
+    }
+
+    char line[256];
+    str_copy(line, "[LOG] ", sizeof(line));
+    str_concat(line, msg, sizeof(line));
+    str_concat(line, "\n", sizeof(line));
+
+    int line_len = str_len(line);
+    int content_len = str_len(fs_files[idx].content);
+    const int max_log_size = 480;
+
+    if (content_len + line_len > max_log_size) {
+        const char *src = fs_files[idx].content;
+        int copy_start = 0;
+
+        while (copy_start < content_len && src[copy_start] != '\n') {
+            copy_start++;
+        }
+        if (copy_start < content_len && src[copy_start] == '\n') {
+            copy_start++;
+        }
+
+        char temp[512];
+        str_copy(temp, src + copy_start, sizeof(temp));
+        str_copy(fs_files[idx].content, temp, 512);
+    }
+
+    str_concat(fs_files[idx].content, line, 512);
+}
+
 static void log_event(const char *msg) {
     if (log_count < MAX_LOGS) {
         str_copy(system_logs[log_count], msg, 128);
         log_count++;
-        return;
+    } else {
+        for (int i = 1; i < MAX_LOGS; ++i) {
+            str_copy(system_logs[i - 1], system_logs[i], 128);
+        }
+        str_copy(system_logs[MAX_LOGS - 1], msg, 128);
     }
-    for (int i = 1; i < MAX_LOGS; ++i) {
-        str_copy(system_logs[i - 1], system_logs[i], 128);
-    }
-    str_copy(system_logs[MAX_LOGS - 1], msg, 128);
+
+    log_event_append_file(msg);
 }
 
 static int user_find(const char *name) {
@@ -427,6 +466,75 @@ static int user_find(const char *name) {
     return -1;
 }
 
+static const char *current_username(void) {
+    return users[current_user].name;
+}
+
+static int is_root_user(void) {
+    return str_eq(current_username(), "root");
+}
+
+static int perm_digit_value(char c) {
+    if (c < '0' || c > '7') {
+        return 0;
+    }
+    return c - '0';
+}
+
+static void normalize_perm(const char *src, const char *fallback, char *out) {
+    const char *value = src ? src : fallback;
+    if (!value || value[0] == '\0') {
+        value = fallback;
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        char c = value[i];
+        if (c < '0' || c > '7') {
+            c = fallback[i];
+        }
+        out[i] = c;
+    }
+    out[3] = '\0';
+}
+
+static int perm_allows(const char *owner, const char *perm, int need_bits) {
+    int bits;
+
+    if (is_root_user()) {
+        return 1;
+    }
+
+    if (str_eq(owner, current_username())) {
+        bits = perm_digit_value(perm[0]);
+    } else {
+        bits = perm_digit_value(perm[2]);
+    }
+
+    return (bits & need_bits) == need_bits;
+}
+
+static int dir_can_list_idx(int idx) {
+    return perm_allows(fs_dirs[idx].owner, fs_dirs[idx].perm, 4) &&
+           perm_allows(fs_dirs[idx].owner, fs_dirs[idx].perm, 1);
+}
+
+static int dir_can_enter_idx(int idx) {
+    return perm_allows(fs_dirs[idx].owner, fs_dirs[idx].perm, 1);
+}
+
+static int dir_can_write_idx(int idx) {
+    return perm_allows(fs_dirs[idx].owner, fs_dirs[idx].perm, 2) &&
+           perm_allows(fs_dirs[idx].owner, fs_dirs[idx].perm, 1);
+}
+
+static int file_can_read_idx(int idx) {
+    return perm_allows(fs_files[idx].owner, fs_files[idx].perm, 4);
+}
+
+static int file_can_write_idx(int idx) {
+    return perm_allows(fs_files[idx].owner, fs_files[idx].perm, 2);
+}
+
 static void users_init(void) {
     for (int i = 0; i < MAX_USERS; ++i) {
         users[i].used = 0;
@@ -434,39 +542,45 @@ static void users_init(void) {
 
     users[0].used = 1;
     str_copy(users[0].name, "root", 32);
-    str_copy(users[0].pass, "root", 32);
+    str_copy(users[0].pass_hash, "sha256$4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2", 80);
     users[0].is_admin = 1;
 
     users[1].used = 1;
     str_copy(users[1].name, "guest", 32);
-    str_copy(users[1].pass, "guest", 32);
+    str_copy(users[1].pass_hash, "sha256$84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec", 80);
     users[1].is_admin = 0;
 
     users[2].used = 1;
     str_copy(users[2].name, "analyst", 32);
-    str_copy(users[2].pass, "analyst", 32);
+    str_copy(users[2].pass_hash, "sha256$f44ceb062e35dfeea6ed7f8524d53bb0bff19f553e25cae7ef4850e4185ccbba", 80);
     users[2].is_admin = 0;
 
     current_user = 0;
 }
 
-static int parse_two_tokens(const char *src, char *a, int a_len, char *b, int b_len) {
-    const char *p = skip_spaces(src);
-    int i = 0;
-    int j = 0;
+static void auth_store_password(struct user_entry *user, const char *plain) {
+    char digest[65];
 
-    while (*p != '\0' && *p != ' ' && *p != '\t' && i < a_len - 1) {
-        a[i++] = *p++;
+    sha256_to_hex(plain, digest, sizeof(digest));
+    str_copy(user->pass_hash, "sha256$", 80);
+    str_concat(user->pass_hash, digest, 80);
+}
+
+static int auth_verify_password(const struct user_entry *user, const char *plain) {
+    char digest[65];
+
+    if (strncmp(user->pass_hash, "sha256$", 7) == 0) {
+        sha256_to_hex(plain, digest, sizeof(digest));
+        return str_eq(user->pass_hash + 7, digest);
     }
-    a[i] = '\0';
 
-    p = skip_spaces(p);
-    while (*p != '\0' && *p != ' ' && *p != '\t' && j < b_len - 1) {
-        b[j++] = *p++;
+    if (str_len(user->pass_hash) == 64) {
+        sha256_to_hex(plain, digest, sizeof(digest));
+        return str_eq(user->pass_hash, digest);
     }
-    b[j] = '\0';
 
-    return a[0] != '\0' && b[0] != '\0';
+    /* Compatibilidade com formatos legados em texto puro. */
+    return str_eq(user->pass_hash, plain);
 }
 
 static int hex_val(char c) {
@@ -984,9 +1098,9 @@ static int looks_like_english_text(const char *text) {
     return str_contains(lower, " the ") || str_contains(lower, " you ") || str_contains(lower, " this ");
 }
 
-static int file_create(const char *path);
-static int file_find(const char *path);
+static int file_create_with_meta(const char *path, const char *owner, const char *perm);
 static int dir_find(const char *path);
+static int dir_create_with_meta(const char *path, const char *owner, const char *perm);
 static void resolve_path(const char *input, char *out);
 static int is_direct_child(const char *parent, const char *child);
 static int is_root_path(const char *path);
@@ -995,7 +1109,9 @@ static const char *base_name(const char *path);
 static void mission_apply_actions(const struct mission_action *actions, int count) {
     for (int i = 0; i < count; ++i) {
         int idx;
-        if (!file_create(actions[i].path)) {
+        const char *owner = actions[i].owner ? actions[i].owner : "root";
+        const char *perm = actions[i].perm ? actions[i].perm : "644";
+        if (!file_create_with_meta(actions[i].path, owner, perm)) {
             continue;
         }
         idx = file_find(actions[i].path);
@@ -1042,6 +1158,28 @@ static void mission_print_available_commands(void) {
     putchar('\n');
 }
 
+static const struct command_meta *command_meta_find(const char *name) {
+    int total = (int)(sizeof(command_catalog) / sizeof(command_catalog[0]));
+    for (int i = 0; i < total; ++i) {
+        if (str_eq(command_catalog[i].name, name)) {
+            return &command_catalog[i];
+        }
+    }
+    return 0;
+}
+
+static void command_meta_print_single(const struct command_meta *meta) {
+    puts("Command: ");
+    puts(meta->name);
+    putchar('\n');
+    puts("Description: ");
+    puts(meta->description);
+    putchar('\n');
+    puts("Usage: ");
+    puts(meta->usage);
+    putchar('\n');
+}
+
 static int starts_with(const char *text, const char *prefix) {
     int n = str_len(prefix);
     if (n == 0) {
@@ -1050,12 +1188,11 @@ static int starts_with(const char *text, const char *prefix) {
     return strncmp(text, prefix, n) == 0;
 }
 
-static void redraw_prompt_with_buffer(const char *buffer) {
+static void redraw_prompt(void) {
     putchar('\n');
     puts("INITIUM:");
     puts(current_path);
     puts("$ ");
-    puts(buffer);
 }
 
 static int path_autocomplete(char *buffer, int length, int max_length, int token_start) {
@@ -1075,6 +1212,7 @@ static int path_autocomplete(char *buffer, int length, int max_length, int token
     int common_len = 0;
     int single_is_dir = 0;
     int single_name_len = 0;
+    int parent_idx = -1;
 
     if (token_len <= 0 || token_len >= (int)sizeof(token)) {
         return length;
@@ -1117,7 +1255,8 @@ static int path_autocomplete(char *buffer, int length, int max_length, int token
     }
 
     prefix_len = str_len(name_prefix);
-    if (dir_find(parent_abs) < 0) {
+    parent_idx = dir_find(parent_abs);
+    if (parent_idx < 0 || !dir_can_list_idx(parent_idx)) {
         return length;
     }
 
@@ -1129,6 +1268,12 @@ static int path_autocomplete(char *buffer, int length, int max_length, int token
             const char *name;
 
             if (!used || (pass == 0 && is_root_path(path))) {
+                continue;
+            }
+            if (pass == 0 && !dir_can_list_idx(i)) {
+                continue;
+            }
+            if (pass == 1 && !file_can_read_idx(i)) {
                 continue;
             }
             if (!is_direct_child(parent_abs, path)) {
@@ -1205,10 +1350,6 @@ static int path_autocomplete(char *buffer, int length, int max_length, int token
                 buffer[new_len] = '\0';
                 putchar('/');
             }
-        } else if (new_len < max_length - 1) {
-            buffer[new_len++] = ' ';
-            buffer[new_len] = '\0';
-            putchar(' ');
         }
         return new_len;
     }
@@ -1224,7 +1365,7 @@ static int path_autocomplete(char *buffer, int length, int max_length, int token
             puts("  ");
         }
     }
-    redraw_prompt_with_buffer(buffer);
+    redraw_prompt();
     return new_len;
 }
 
@@ -1247,9 +1388,9 @@ static int command_autocomplete(char *buffer, int length, int max_length) {
     int first_len = 0;
     int common_len = 0;
 
-    int total_cmds = (int)(sizeof(all_shell_commands) / sizeof(all_shell_commands[0]));
+    int total_cmds = (int)(sizeof(command_catalog) / sizeof(command_catalog[0]));
     for (int i = 0; i < total_cmds; ++i) {
-        const char *cmd = all_shell_commands[i];
+        const char *cmd = command_catalog[i].name;
         if (!mission_command_allowed(cmd) && !str_eq(cmd, "exit")) {
             continue;
         }
@@ -1288,11 +1429,6 @@ static int command_autocomplete(char *buffer, int length, int max_length) {
     }
 
     if (match_count == 1) {
-        if (new_len == first_len && new_len < max_length - 1) {
-            buffer[new_len++] = ' ';
-            putchar(' ');
-            buffer[new_len] = '\0';
-        }
         return new_len;
     }
 
@@ -1307,7 +1443,7 @@ static int command_autocomplete(char *buffer, int length, int max_length) {
             puts("  ");
         }
     }
-    redraw_prompt_with_buffer(buffer);
+    redraw_prompt();
     return new_len;
 }
 
@@ -1527,8 +1663,13 @@ static void history_add(const char *line) {
 }
 
 static void print_tree(const char *dir, int depth) {
+    int dir_idx = dir_find(dir);
+    if (dir_idx < 0 || !dir_can_list_idx(dir_idx)) {
+        return;
+    }
+
     for (int i = 0; i < MAX_DIRS; ++i) {
-        if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && is_direct_child(dir, fs_dirs[i].path)) {
+        if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && is_direct_child(dir, fs_dirs[i].path) && dir_can_list_idx(i)) {
             for (int d = 0; d < depth; ++d) {
                 puts("  ");
             }
@@ -1540,7 +1681,7 @@ static void print_tree(const char *dir, int depth) {
     }
 
     for (int i = 0; i < MAX_FILES; ++i) {
-        if (fs_files[i].used && is_direct_child(dir, fs_files[i].path)) {
+        if (fs_files[i].used && is_direct_child(dir, fs_files[i].path) && file_can_read_idx(i)) {
             for (int d = 0; d < depth; ++d) {
                 puts("  ");
             }
@@ -1551,8 +1692,13 @@ static void print_tree(const char *dir, int depth) {
     }
 }
 
-static int dir_create(const char *path) {
+static int dir_create_with_meta(const char *path, const char *owner, const char *perm) {
     if (dir_find(path) >= 0) {
+        int idx = dir_find(path);
+        if (idx >= 0) {
+            str_copy(fs_dirs[idx].owner, owner ? owner : "root", 32);
+            normalize_perm(perm, "755", fs_dirs[idx].perm);
+        }
         return 0;
     }
 
@@ -1560,14 +1706,21 @@ static int dir_create(const char *path) {
         if (!fs_dirs[i].used) {
             fs_dirs[i].used = 1;
             str_copy(fs_dirs[i].path, path, 128);
+            str_copy(fs_dirs[i].owner, owner ? owner : "root", 32);
+            normalize_perm(perm, "755", fs_dirs[i].perm);
             return 1;
         }
     }
     return 0;
 }
 
-static int file_create(const char *path) {
+static int file_create_with_meta(const char *path, const char *owner, const char *perm) {
     if (file_find(path) >= 0) {
+        int idx = file_find(path);
+        if (idx >= 0) {
+            str_copy(fs_files[idx].owner, owner ? owner : "root", 32);
+            normalize_perm(perm, "644", fs_files[idx].perm);
+        }
         return 1;
     }
 
@@ -1575,6 +1728,8 @@ static int file_create(const char *path) {
         if (!fs_files[i].used) {
             fs_files[i].used = 1;
             str_copy(fs_files[i].path, path, 128);
+            str_copy(fs_files[i].owner, owner ? owner : "root", 32);
+            normalize_perm(perm, "644", fs_files[i].perm);
             fs_files[i].content[0] = '\0';
             return 1;
         }
@@ -1604,18 +1759,19 @@ static void fs_init(void) {
         fs_files[i].used = 0;
     }
 
-    dir_create("/");
-    dir_create("/home");
-    dir_create("/home/guest");
-    dir_create("/tmp");
-    dir_create("/var");
-    dir_create("/var/log");
-    dir_create("/usr");
-    dir_create("/usr/bin");
-    dir_create("/root");
+    dir_create_with_meta("/", "root", "755");
+    dir_create_with_meta("/home", "root", "755");
+    dir_create_with_meta("/home/guest", "guest", "755");
+    dir_create_with_meta("/tmp", "root", "777");
+    dir_create_with_meta("/var", "root", "755");
+    dir_create_with_meta("/var/log", "root", "755");
+    dir_create_with_meta("/usr", "root", "755");
+    dir_create_with_meta("/usr/bin", "root", "755");
+    dir_create_with_meta("/root", "root", "700");
 
-    file_create("/README.txt");
-    file_create("/notes.txt");
+    file_create_with_meta("/README.txt", "root", "644");
+    file_create_with_meta("/notes.txt", "root", "644");
+    file_create_with_meta("/var/log/system.log", "root", "644");
     int readme = file_find("/README.txt");
     int notes = file_find("/notes.txt");
     if (readme >= 0) {
@@ -1636,13 +1792,13 @@ static void fs_init(void) {
 
 static void clear_screen(void) {
     uint16_t blank = ' ' | (default_color << 8);
-    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; ++i) {
+    for (int i = 0; i < screen_width * screen_height; ++i) {
         VGA[i] = blank;
     }
     cursor_pos = 0;
     serial_puts_raw("\x1b[2J\x1b[3J\x1b[H\x1b[0m");
     print_boot_logo();
-    cursor_pos = UI_HEADER_LINES * VGA_WIDTH;
+    cursor_pos = ui_header_lines * screen_width;
 }
 
 static void sleep_ticks(uint32_t tick_count) {
@@ -1653,7 +1809,7 @@ static void sleep_ticks(uint32_t tick_count) {
 }
 
 static void shutdown_countdown(void) {
-    puts("desligando sistema em 14 segundos...\n");
+    puts("Desligando sistema\n");
     serial_puts_raw("BOOT: shutdown countdown\n");
 
     sleep_ticks(1400);
@@ -1681,15 +1837,26 @@ static void system_poweroff(void) {
 }
 
 static void print_boot_logo(void) {
-    puts("+------------------------------------------------------------------------------+\n");
-    puts("| o--o  o--o                      INITIUM OS                        o--o  o--o |\n");
-    puts("|                                                                              |\n");
-    puts("|                         .----------------------------.                       |\n");
-    puts("|                         |            >_              |                       |\n");
-    puts("|                         '----------------------------'                       |\n");
-    puts("|                                                                              |\n");
-    puts("|          S E C U R E   C T F   K E R N E L   E N V I R O N M E N T           |\n");
-    puts("+------------------------------------------------------------------------------+\n\n");
+    if (screen_width < 80) {
+        puts_centered_line("+------------------------------+");
+        puts_centered_line("|        INITIUM OS            |");
+        puts_centered_line("|            >_                |");
+        puts_centered_line("|    SECURE CTF KERNEL         |");
+        puts_centered_line("+------------------------------+");
+        putchar('\n');
+        return;
+    }
+
+    puts_centered_line("+------------------------------------------------------------------------------+");
+    puts_centered_line("| o--o  o--o                      INITIUM OS                        o--o  o--o |");
+    puts_centered_line("|                                                                              |");
+    puts_centered_line("|                         .----------------------------.                       |");
+    puts_centered_line("|                         |            >_              |                       |");
+    puts_centered_line("|                         '----------------------------'                       |");
+    puts_centered_line("|                                                                              |");
+    puts_centered_line("|          S E C U R E   C T F   K E R N E L   E N V I R O N M E N T           |");
+    puts_centered_line("+------------------------------------------------------------------------------+");
+    putchar('\n');
 }
 
 static void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity) {
@@ -1912,30 +2079,42 @@ void keyboard_handler(void) {
     }
 }
 
-static char input_read_char(void) {
+static int session_timed_out(void) {
+    return session_authenticated && (uint32_t)(timer_ticks - session_last_activity_ticks) >= SESSION_TIMEOUT_TICKS;
+}
+
+static int input_read_char(void) {
     for (;;) {
+        if (session_timed_out()) {
+            return -1;
+        }
+
         if (kb_tail != kb_head) {
             char c = keyboard_buffer[kb_tail];
             kb_tail = (kb_tail + 1) & 0xFF;
-            return c;
+            session_last_activity_ticks = timer_ticks;
+            return (int)c;
         }
 
         if (serial_has_data()) {
             char c = (char)inb(SERIAL_PORT);
             if (c == '\r') {
+                session_last_activity_ticks = timer_ticks;
                 return '\n';
             }
             if (c == 0x7f) {
+                session_last_activity_ticks = timer_ticks;
                 return '\b';
             }
-            return c;
+            session_last_activity_ticks = timer_ticks;
+            return (int)c;
         }
 
         __asm__ volatile ("hlt");
     }
 }
 
-static void read_line(char *buffer, int max_length) {
+static int read_line(char *buffer, int max_length) {
     int length = 0;
     int cursor_index = 0;
     int rendered_length = 0;
@@ -1944,7 +2123,7 @@ static void read_line(char *buffer, int max_length) {
     int ansi_state = 0;
     char draft_buffer[128];
     uint16_t line_start = cursor_pos;
-    int line_capacity = VGA_WIDTH - (line_start % VGA_WIDTH);
+    int line_capacity = screen_width - (line_start % screen_width);
     int line_limit = max_length - 1;
 
     if (line_capacity < 1) {
@@ -1962,8 +2141,17 @@ static void read_line(char *buffer, int max_length) {
     draft_buffer[0] = '\0';
 
     while (1) {
-        char c = input_read_char();
-        uint8_t uc = (uint8_t)c;
+        int raw = input_read_char();
+        char c;
+        uint8_t uc;
+
+        if (raw < 0) {
+            buffer[0] = '\0';
+            return 0;
+        }
+
+        c = (char)raw;
+        uc = (uint8_t)c;
 
         if (ansi_state == 1) {
             if (c == '[') {
@@ -2143,16 +2331,168 @@ static void read_line(char *buffer, int max_length) {
     }
 
     buffer[length] = '\0';
+    return 1;
+}
+
+static int read_secret_line(char *buffer, int max_length) {
+    int length = 0;
+    int ansi_state = 0;
+
+    if (max_length <= 0) {
+        return 0;
+    }
+
+    buffer[0] = '\0';
+
+    while (1) {
+        int raw = input_read_char();
+        char c;
+        uint8_t uc;
+
+        if (raw < 0) {
+            buffer[0] = '\0';
+            return 0;
+        }
+
+        c = (char)raw;
+        uc = (uint8_t)c;
+
+        if (ansi_state == 1) {
+            if (c == '[') {
+                ansi_state = 2;
+            } else {
+                ansi_state = 0;
+            }
+            continue;
+        }
+
+        if (ansi_state == 2) {
+            ansi_state = 0;
+            continue;
+        }
+
+        if (uc == 0x1B) {
+            ansi_state = 1;
+            continue;
+        }
+
+        if (c == '\n') {
+            putchar('\n');
+            break;
+        }
+
+        if (c == '\b') {
+            if (length > 0) {
+                length--;
+                buffer[length] = '\0';
+                if (cursor_pos > 0) {
+                    cursor_pos--;
+                    VGA[cursor_pos] = (uint16_t)' ' | (default_color << 8);
+                    serial_putchar('\b');
+                    serial_putchar(' ');
+                    serial_putchar('\b');
+                }
+            }
+            continue;
+        }
+
+        if (uc < 0x20 || uc == 0x7F || c == '\t') {
+            continue;
+        }
+
+        if (length >= max_length - 1) {
+            continue;
+        }
+
+        buffer[length++] = c;
+        buffer[length] = '\0';
+        putchar('*');
+    }
+
+    return 1;
+}
+
+static void session_set_login_path(const char *username) {
+    char path[128];
+
+    if (str_eq(username, "root")) {
+        str_copy(path, "/root", sizeof(path));
+    } else {
+        str_copy(path, "/home/", sizeof(path));
+        str_concat(path, username, sizeof(path));
+        if (dir_find(path) < 0) {
+            str_copy(path, "/", sizeof(path));
+        }
+    }
+
+    str_copy(current_path, path, sizeof(current_path));
+}
+
+static void session_reset_to_guest(void) {
+    int guest = user_find("guest");
+
+    if (guest >= 0) {
+        current_user = guest;
+    }
+    session_authenticated = 0;
+    str_copy(current_path, "/", sizeof(current_path));
+}
+
+static void session_log_timeout_event(void) {
+    char msg[96];
+
+    str_copy(msg, "SESSION TIMEOUT: ", sizeof(msg));
+    str_concat(msg, current_username(), sizeof(msg));
+    log_event(msg);
+}
+
+static void session_login_prompt(void) {
+    char username[32];
+    char password[32];
+
+    while (!session_authenticated) {
+        clear_screen();
+        puts("INITIUM-OS shell.\n");
+        puts("=== LOGIN ===\n\n");
+
+        puts("Username: ");
+        if (!read_line(username, sizeof(username))) {
+            continue;
+        }
+
+        puts("Password: ");
+        if (!read_secret_line(password, sizeof(password))) {
+            continue;
+        }
+
+        int idx = user_find(username);
+        if (idx >= 0 && auth_verify_password(&users[idx], password)) {
+            current_user = idx;
+            session_authenticated = 1;
+            session_last_activity_ticks = timer_ticks;
+            session_set_login_path(username);
+            log_event("LOGIN OK");
+            puts("login ok\n");
+        } else {
+            log_event("LOGIN FAIL");
+            puts("credenciais invalidas\n");
+        }
+    }
 }
 
 static void shell(void) {
     char line[128];
     int sudo_restore_user = -1;
 
-    puts("Bem-vindo ao INITIUM-OS shell.\n");
-    puts("Digite 'help' para ver os comandos.\n\n");
-
     while (1) {
+        if (!session_authenticated) {
+            session_login_prompt();
+            if (!session_authenticated) {
+                break;
+            }
+            puts("Digite 'help' para ver os comandos.\n\n");
+        }
+
         if (sudo_restore_user >= 0) {
             current_user = sudo_restore_user;
             sudo_restore_user = -1;
@@ -2161,7 +2501,14 @@ static void shell(void) {
         puts("INITIUM:");
         puts(current_path);
         puts("$ ");
-        read_line(line, sizeof(line));
+        session_last_activity_ticks = timer_ticks;
+        if (!read_line(line, sizeof(line))) {
+            puts("\nSession timed out due to inactivity.\n");
+            session_log_timeout_event();
+            session_reset_to_guest();
+            clear_screen();
+            continue;
+        }
         history_add(line);
 
 reparse_line:
@@ -2188,7 +2535,29 @@ reparse_line:
             break;
         }
 
-        if (strcmp(line, "help") == 0) {
+        if (strncmp(line, "help", 4) == 0) {
+            const char *arg = skip_spaces(line + 4);
+
+            if (*arg != '\0') {
+                const struct command_meta *meta = command_meta_find(arg);
+                if (!meta) {
+                    puts("Command not found: ");
+                    puts(arg);
+                    putchar('\n');
+                    continue;
+                }
+
+                if (!mission_command_allowed(arg) && !str_eq(arg, "exit")) {
+                    puts("Command '");
+                    puts(arg);
+                    puts("' not available at this level.\n");
+                    continue;
+                }
+
+                command_meta_print_single(meta);
+                continue;
+            }
+
             if (mission_current < mission_count) {
                 puts("Missao atual: ");
                 print_uint((uint32_t)missions[mission_current].id);
@@ -2203,52 +2572,27 @@ reparse_line:
             } else {
                 puts("Missao atual: concluido\n");
             }
+
             puts("Pontuacao total: ");
             print_uint((uint32_t)mission_score);
             putchar('\n');
-            mission_print_available_commands();
-            puts("Comandos disponiveis:\n");
-            puts("  help  - Mostrar esta ajuda\n");
-            puts("  clear - Limpar a tela\n");
-            puts("  echo  - Imprimir texto\n");
-            puts("  pwd   - Diretorio atual\n");
-            puts("  ls    - Listar conteudo (ls [dir])\n");
-            puts("  cd    - Trocar diretorio (cd <dir>)\n");
-            puts("  cat   - Mostrar arquivo (cat <arquivo>)\n");
-            puts("  touch - Criar arquivo vazio\n");
-            puts("  mkdir - Criar diretorio\n");
-            puts("  rmdir - Remover diretorio vazio\n");
-            puts("  rm    - Remover arquivo\n");
-            puts("  write - Escrever arquivo (write <arq> <txt>)\n");
-            puts("  append- Anexar texto (append <arq> <txt>)\n");
-            puts("  cp    - Copiar arquivo (cp <src> <dst>)\n");
-            puts("  mv    - Renomear arquivo (mv <src> <dst>)\n");
-            puts("  history - Historico de comandos\n");
-            puts("  find  - Buscar nome (find <termo>)\n");
-            puts("  tree  - Arvore de diretorios\n");
-            puts("  login - Entrar com usuario/senha\n");
-            puts("  logout- Voltar para guest\n");
-            puts("  passwd- Alterar senha (passwd <u> <p>)\n");
-            puts("  su    - Trocar usuario (su <u>)\n");
-            puts("  sudo  - Executar com privilegio\n");
-            puts("  who   - Sessao ativa\n");
-            puts("  whoami- Usuario atual\n");
-            puts("  uname - Info do sistema\n");
-            puts("  ps    - Processos do sistema\n");
-            puts("  logread - Ler logs do sistema\n");
-            puts("  manual - Ajuda rapida de comando\n");
-            puts("  decode/decrypt - Decodificacao e decriptacao\n");
-            puts("  hash  - Hash generate/analyze\n");
-            puts("  stego - Esteganografia (extract)\n");
-            puts("  analyze - Analise de arquivo para pistas\n");
-            puts("  exploit - Explorar script vulneravel\n");
-            puts("  submit - Enviar flag\n");
-            puts("  ticks - Mostrar contagem de ticks do PIT\n");
-            puts("  tasks - Mostrar estado do scheduler\n");
-            puts("  syscall - Testar int 0x80\n");
-            puts("  hint  - Mostrar dicas da missao (hint [n])\n");
-            puts("  shutdown - Encerrar shell\n");
-            puts("  exit  - Sair do shell\n");
+            puts("Available commands at this level:\n");
+
+            if (mission_current >= 0 && mission_current < mission_count) {
+                const struct mission_def *m = &missions[mission_current];
+                for (int i = 0; i < m->command_count; ++i) {
+                    const struct command_meta *meta = command_meta_find(m->commands[i]);
+                    puts("  ");
+                    puts(m->commands[i]);
+                    if (meta) {
+                        puts(" - ");
+                        puts(meta->description);
+                    }
+                    putchar('\n');
+                }
+            }
+
+            puts("Use 'help <command>' for more details.\n");
             continue;
         }
 
@@ -2286,8 +2630,9 @@ reparse_line:
             char target[128];
             const char *arg = skip_spaces(line + 2);
             const int col_width = 20;
-            int cols = VGA_WIDTH / col_width;
+            int cols = screen_width / col_width;
             int col = 0;
+            int target_idx;
 
             if (*arg == '\0') {
                 str_copy(target, current_path, 128);
@@ -2295,8 +2640,13 @@ reparse_line:
                 resolve_path(arg, target);
             }
 
-            if (dir_find(target) < 0) {
+            target_idx = dir_find(target);
+            if (target_idx < 0) {
                 puts("diretorio nao encontrado\n");
+                continue;
+            }
+            if (!dir_can_list_idx(target_idx)) {
+                puts("permission denied\n");
                 continue;
             }
 
@@ -2305,7 +2655,7 @@ reparse_line:
             }
 
             for (int i = 0; i < MAX_DIRS; ++i) {
-                if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && is_direct_child(target, fs_dirs[i].path)) {
+                if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && is_direct_child(target, fs_dirs[i].path) && dir_can_list_idx(i)) {
                     print_ls_cell(base_name(fs_dirs[i].path), 1, col_width);
                     col++;
                     if (col >= cols) {
@@ -2315,7 +2665,7 @@ reparse_line:
                 }
             }
             for (int i = 0; i < MAX_FILES; ++i) {
-                if (fs_files[i].used && is_direct_child(target, fs_files[i].path)) {
+                if (fs_files[i].used && is_direct_child(target, fs_files[i].path) && file_can_read_idx(i)) {
                     print_ls_cell(base_name(fs_files[i].path), 0, col_width);
                     col++;
                     if (col >= cols) {
@@ -2334,13 +2684,19 @@ reparse_line:
         if (strncmp(line, "cd", 2) == 0) {
             char target[128];
             const char *arg = skip_spaces(line + 2);
+            int target_idx;
             if (*arg == '\0') {
                 str_copy(current_path, "/", 128);
                 continue;
             }
 
             resolve_path(arg, target);
-            if (dir_find(target) >= 0) {
+            target_idx = dir_find(target);
+            if (target_idx >= 0) {
+                if (!dir_can_enter_idx(target_idx)) {
+                    puts("permission denied\n");
+                    continue;
+                }
                 str_copy(current_path, target, 128);
             } else {
                 puts("diretorio nao encontrado\n");
@@ -2351,12 +2707,18 @@ reparse_line:
         if (strncmp(line, "login", 5) == 0) {
             char u[32];
             char p[32];
-            if (!parse_two_tokens(line + 5, u, 32, p, 32)) {
-                puts("uso: login <usuario> <senha>\n");
+            if (*skip_spaces(line + 5) != '\0') {
+                puts("uso: login\n");
                 continue;
             }
+
+            puts("Username: ");
+            read_line(u, sizeof(u));
+            puts("Password: ");
+            read_secret_line(p, sizeof(p));
+
             int idx = user_find(u);
-            if (idx >= 0 && str_eq(users[idx].pass, p)) {
+            if (idx >= 0 && auth_verify_password(&users[idx], p)) {
                 current_user = idx;
                 puts("login ok\n");
                 log_event("LOGIN OK");
@@ -2374,6 +2736,8 @@ reparse_line:
             }
             puts("logout ok\n");
             log_event("LOGOUT");
+            session_reset_to_guest();
+            clear_screen();
             continue;
         }
 
@@ -2381,8 +2745,15 @@ reparse_line:
             char u[32];
             char p[32];
             const char *arg = skip_spaces(line + 2);
-            if (!parse_two_tokens(arg, u, 32, p, 32)) {
-                puts("Usage: su <username> <password>\n");
+            int ui = 0;
+
+            while (*arg != '\0' && *arg != ' ' && *arg != '\t' && ui < (int)sizeof(u) - 1) {
+                u[ui++] = *arg++;
+            }
+            u[ui] = '\0';
+
+            if (u[0] == '\0' || *skip_spaces(arg) != '\0') {
+                puts("Usage: su <username>\n");
                 continue;
             }
 
@@ -2392,7 +2763,12 @@ reparse_line:
             }
 
             int idx = user_find(u);
-            if (idx >= 0 && str_eq(users[idx].pass, p)) {
+            puts("Password for ");
+            puts(u);
+            puts(": ");
+            read_secret_line(p, sizeof(p));
+
+            if (idx >= 0 && auth_verify_password(&users[idx], p)) {
                 current_user = idx;
                 puts("Switched to ");
                 puts(u);
@@ -2404,59 +2780,36 @@ reparse_line:
         }
 
         if (strncmp(line, "passwd", 6) == 0) {
-            char a[32], b[32], c[32];
-            int ai = 0, bi = 0, ci2 = 0;
-            const char *pcur = skip_spaces(line + 6);
+            char current[32];
+            char next[32];
+            char confirm[32];
 
-            while (*pcur != '\0' && *pcur != ' ' && *pcur != '\t' && ai < 31) {
-                a[ai++] = *pcur++;
-            }
-            a[ai] = '\0';
-            pcur = skip_spaces(pcur);
-            while (*pcur != '\0' && *pcur != ' ' && *pcur != '\t' && bi < 31) {
-                b[bi++] = *pcur++;
-            }
-            b[bi] = '\0';
-            pcur = skip_spaces(pcur);
-            while (*pcur != '\0' && *pcur != ' ' && *pcur != '\t' && ci2 < 31) {
-                c[ci2++] = *pcur++;
-            }
-            c[ci2] = '\0';
-
-            if (a[0] == '\0' || b[0] == '\0') {
-                puts("Usage: passwd <current> <new> <confirm>\n");
-                puts("   or: passwd <user> <new> (admin)\n");
+            if (*skip_spaces(line + 6) != '\0') {
+                puts("Usage: passwd\n");
                 continue;
             }
 
-            if (c[0] != '\0') {
-                if (!str_eq(users[current_user].pass, a)) {
-                    puts("Current password incorrect\n");
-                    continue;
-                }
-                if (!str_eq(b, c)) {
-                    puts("Passwords do not match\n");
-                    continue;
-                }
-                str_copy(users[current_user].pass, b, 32);
-                puts("Password changed successfully\n");
-                log_event("PASSWD CHANGE SELF");
+            puts("Current password: ");
+            read_secret_line(current, sizeof(current));
+            if (!auth_verify_password(&users[current_user], current)) {
+                puts("Current password incorrect\n");
                 continue;
             }
 
-            if (!users[current_user].is_admin) {
-                puts("permission denied\n");
+            puts("New password: ");
+            read_secret_line(next, sizeof(next));
+            puts("Confirm new password: ");
+            read_secret_line(confirm, sizeof(confirm));
+
+            if (!str_eq(next, confirm)) {
+                puts("Passwords do not match\n");
+                log_event("PASSWD CHANGE FAIL: MISMATCH");
                 continue;
             }
 
-            int idx = user_find(a);
-            if (idx < 0) {
-                puts("usuario inexistente\n");
-                continue;
-            }
-            str_copy(users[idx].pass, b, 32);
-            puts("senha atualizada\n");
-            log_event("PASSWD CHANGE ADMIN");
+            auth_store_password(&users[current_user], next);
+            puts("Password changed successfully\n");
+            log_event("PASSWD CHANGE SELF");
             continue;
         }
 
@@ -2522,14 +2875,20 @@ reparse_line:
                 puts("arquivo nao encontrado\n");
                 continue;
             }
+            if (!file_can_read_idx(idx)) {
+                puts("permission denied\n");
+                continue;
+            }
 
             puts(fs_files[idx].content);
+            putchar('\n');
             continue;
         }
 
         if (strncmp(line, "touch", 5) == 0) {
             char path[128];
             char parent[128];
+            int parent_idx;
             const char *name = skip_spaces(line + 5);
             if (*name == '\0') {
                 puts("uso: touch <arquivo>\n");
@@ -2537,11 +2896,16 @@ reparse_line:
             }
             resolve_path(name, path);
             parent_path(path, parent);
-            if (dir_find(parent) < 0) {
+            parent_idx = dir_find(parent);
+            if (parent_idx < 0) {
                 puts("diretorio pai inexistente\n");
                 continue;
             }
-            if (!file_create(path)) {
+            if (!dir_can_write_idx(parent_idx)) {
+                puts("permission denied\n");
+                continue;
+            }
+            if (!file_create_with_meta(path, current_username(), "644")) {
                 puts("nao foi possivel criar arquivo\n");
             }
             continue;
@@ -2550,6 +2914,7 @@ reparse_line:
         if (strncmp(line, "mkdir", 5) == 0) {
             char path[128];
             char parent[128];
+            int parent_idx;
             const char *name = skip_spaces(line + 5);
             if (*name == '\0') {
                 puts("uso: mkdir <diretorio>\n");
@@ -2557,11 +2922,16 @@ reparse_line:
             }
             resolve_path(name, path);
             parent_path(path, parent);
-            if (dir_find(parent) < 0) {
+            parent_idx = dir_find(parent);
+            if (parent_idx < 0) {
                 puts("diretorio pai inexistente\n");
                 continue;
             }
-            if (!dir_create(path)) {
+            if (!dir_can_write_idx(parent_idx)) {
+                puts("permission denied\n");
+                continue;
+            }
+            if (!dir_create_with_meta(path, current_username(), "755")) {
                 puts("nao foi possivel criar diretorio\n");
             }
             continue;
@@ -2569,6 +2939,8 @@ reparse_line:
 
         if (strncmp(line, "rmdir", 5) == 0) {
             char path[128];
+            char parent[128];
+            int parent_idx;
             const char *name = skip_spaces(line + 5);
             if (*name == '\0') {
                 puts("uso: rmdir <diretorio>\n");
@@ -2578,6 +2950,12 @@ reparse_line:
             int idx = dir_find(path);
             if (idx < 0 || is_root_path(path)) {
                 puts("diretorio invalido\n");
+                continue;
+            }
+            parent_path(path, parent);
+            parent_idx = dir_find(parent);
+            if (parent_idx < 0 || !dir_can_write_idx(parent_idx)) {
+                puts("permission denied\n");
                 continue;
             }
             if (!dir_is_empty(path)) {
@@ -2590,6 +2968,8 @@ reparse_line:
 
         if (strncmp(line, "rm", 2) == 0) {
             char path[128];
+            char parent[128];
+            int parent_idx;
             const char *name = skip_spaces(line + 2);
             if (*name == '\0') {
                 puts("uso: rm <arquivo>\n");
@@ -2599,6 +2979,12 @@ reparse_line:
             int idx = file_find(path);
             if (idx < 0) {
                 puts("arquivo nao encontrado\n");
+                continue;
+            }
+            parent_path(path, parent);
+            parent_idx = dir_find(parent);
+            if (parent_idx < 0 || !dir_can_write_idx(parent_idx)) {
+                puts("permission denied\n");
                 continue;
             }
             fs_files[idx].used = 0;
@@ -2611,6 +2997,8 @@ reparse_line:
             char name[128];
             char path[128];
             char parent[128];
+            int parent_idx;
+            int idx;
             int n = 0;
 
             while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t' && n < 127) {
@@ -2626,17 +3014,28 @@ reparse_line:
 
             resolve_path(name, path);
             parent_path(path, parent);
-            if (dir_find(parent) < 0) {
+            parent_idx = dir_find(parent);
+            if (parent_idx < 0) {
                 puts("diretorio pai inexistente\n");
                 continue;
             }
-
-            if (!file_create(path)) {
-                puts("nao foi possivel criar arquivo\n");
+            if (!dir_can_write_idx(parent_idx)) {
+                puts("permission denied\n");
                 continue;
             }
 
-            int idx = file_find(path);
+            idx = file_find(path);
+            if (idx < 0) {
+                if (!file_create_with_meta(path, current_username(), "644")) {
+                    puts("nao foi possivel criar arquivo\n");
+                    continue;
+                }
+                idx = file_find(path);
+            } else if (!file_can_write_idx(idx)) {
+                puts("permission denied\n");
+                continue;
+            }
+
             if (!is_append) {
                 str_copy(fs_files[idx].content, cursor, 512);
             } else {
@@ -2656,6 +3055,8 @@ reparse_line:
             char src[128];
             char dst[128];
             char dst_parent[128];
+            int src_idx;
+            int dst_parent_idx;
             int a = 0;
             int b = 0;
 
@@ -2676,19 +3077,34 @@ reparse_line:
 
             resolve_path(src_name, src);
             resolve_path(dst_name, dst);
-            int src_idx = file_find(src);
+            src_idx = file_find(src);
             if (src_idx < 0) {
                 puts("arquivo origem nao encontrado\n");
                 continue;
             }
-
-            parent_path(dst, dst_parent);
-            if (dir_find(dst_parent) < 0) {
-                puts("diretorio destino inexistente\n");
+            if (!file_can_read_idx(src_idx)) {
+                puts("permission denied\n");
                 continue;
             }
 
-            if (!file_create(dst)) {
+            parent_path(dst, dst_parent);
+            dst_parent_idx = dir_find(dst_parent);
+            if (dst_parent_idx < 0) {
+                puts("diretorio destino inexistente\n");
+                continue;
+            }
+            if (!dir_can_write_idx(dst_parent_idx)) {
+                puts("permission denied\n");
+                continue;
+            }
+
+            int dst_exists = file_find(dst);
+            if (dst_exists >= 0 && !file_can_write_idx(dst_exists)) {
+                puts("permission denied\n");
+                continue;
+            }
+
+            if (!file_create_with_meta(dst, current_username(), fs_files[src_idx].perm)) {
                 puts("nao foi possivel criar destino\n");
                 continue;
             }
@@ -2721,7 +3137,7 @@ reparse_line:
             }
 
             for (int i = 0; i < MAX_DIRS; ++i) {
-                if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && str_contains(base_name(fs_dirs[i].path), term)) {
+                if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && str_contains(base_name(fs_dirs[i].path), term) && dir_can_list_idx(i)) {
                     puts(fs_dirs[i].path);
                     puts("/\n");
                     found = 1;
@@ -2729,7 +3145,7 @@ reparse_line:
             }
 
             for (int i = 0; i < MAX_FILES; ++i) {
-                if (fs_files[i].used && str_contains(base_name(fs_files[i].path), term)) {
+                if (fs_files[i].used && str_contains(base_name(fs_files[i].path), term) && file_can_read_idx(i)) {
                     puts(fs_files[i].path);
                     putchar('\n');
                     found = 1;
@@ -2745,14 +3161,20 @@ reparse_line:
         if (strncmp(line, "tree", 4) == 0) {
             char target[128];
             const char *arg = skip_spaces(line + 4);
+            int target_idx;
             if (*arg == '\0') {
                 str_copy(target, current_path, 128);
             } else {
                 resolve_path(arg, target);
             }
 
-            if (dir_find(target) < 0) {
+            target_idx = dir_find(target);
+            if (target_idx < 0) {
                 puts("diretorio nao encontrado\n");
+                continue;
+            }
+            if (!dir_can_list_idx(target_idx)) {
+                puts("permission denied\n");
                 continue;
             }
 
@@ -2772,17 +3194,18 @@ reparse_line:
 
         if (strncmp(line, "logread", 7) == 0) {
             const char *arg = skip_spaces(line + 7);
+            int log_idx = file_find("/var/log/system.log");
 
-            if (log_count == 0) {
+            if (log_idx < 0 || fs_files[log_idx].content[0] == '\0') {
                 puts("No logs available.\n");
                 continue;
             }
 
+            char log_copy[512];
+            str_copy(log_copy, fs_files[log_idx].content, sizeof(log_copy));
+
             if (*arg == '\0') {
-                for (int i = 0; i < log_count; ++i) {
-                    puts(system_logs[i]);
-                    putchar('\n');
-                }
+                puts(log_copy);
                 continue;
             }
 
@@ -2803,27 +3226,52 @@ reparse_line:
                     puts("No matching logs.\n");
                     continue;
                 }
-                int start = log_count - n;
-                if (start < 0) {
-                    start = 0;
+
+                int line_count = 0;
+                for (int i = 0; log_copy[i] != '\0'; ++i) {
+                    if (log_copy[i] == '\n') {
+                        line_count++;
+                    }
                 }
-                for (int i = start; i < log_count; ++i) {
-                    puts(system_logs[i]);
-                    putchar('\n');
+
+                int skip_lines = (line_count > n) ? (line_count - n) : 0;
+                int lines_skipped = 0;
+                int in_skip_range = (skip_lines > 0) ? 1 : 0;
+
+                for (int i = 0; log_copy[i] != '\0'; ++i) {
+                    if (in_skip_range && log_copy[i] == '\n') {
+                        lines_skipped++;
+                        if (lines_skipped >= skip_lines) {
+                            in_skip_range = 0;
+                        }
+                        continue;
+                    }
+                    if (!in_skip_range) {
+                        putchar(log_copy[i]);
+                    }
                 }
                 continue;
             }
 
             int found = 0;
-            for (int i = 0; i < log_count; ++i) {
-                char lower_line[128];
-                char lower_arg[64];
-                to_lower_copy(system_logs[i], lower_line, 128);
-                to_lower_copy(arg, lower_arg, 64);
-                if (str_contains(lower_line, lower_arg)) {
-                    puts(system_logs[i]);
-                    putchar('\n');
+            char lower_copy[512];
+            char lower_arg[64];
+            to_lower_copy(log_copy, lower_copy, sizeof(lower_copy));
+            to_lower_copy(arg, lower_arg, sizeof(lower_arg));
+
+            for (int i = 0; log_copy[i] != '\0'; ++i) {
+                if (str_contains(lower_copy + i, lower_arg)) {
                     found = 1;
+                    while (i > 0 && log_copy[i - 1] != '\n') {
+                        i--;
+                    }
+                    while (log_copy[i] != '\0' && log_copy[i] != '\n') {
+                        putchar(log_copy[i]);
+                        i++;
+                    }
+                    if (log_copy[i] == '\n') {
+                        putchar('\n');
+                    }
                 }
             }
             if (!found) {
@@ -2836,33 +3284,20 @@ reparse_line:
             const char *arg = skip_spaces(line + 6);
             if (*arg == '\0') {
                 puts("=== CICADA-3301 Command Manual ===\n");
-                puts("cat     Syntax: cat <arquivo>\n");
-                puts("cd      Syntax: cd <diretorio>\n");
-                puts("clear   Syntax: clear\n");
-                puts("decode  Syntax: decode <tipo> <conteudo> | decode <arquivo>\n");
-                puts("decrypt Syntax: decrypt <arquivo> | decrypt <caesar|vigenere> <arquivo> <chave>\n");
-                puts("hash    Syntax: hash <generate|analyze> <texto|arquivo>\n");
-                puts("help    Syntax: help\n");
-                puts("history Syntax: history\n");
-                puts("login   Syntax: login <usuario> <senha>\n");
-                puts("logout  Syntax: logout\n");
-                puts("logread Syntax: logread [n_linhas|filtro]\n");
-                puts("ls      Syntax: ls [diretorio]\n");
-                puts("manual  Syntax: manual [comando]\n");
-                puts("passwd  Syntax: passwd <usuario> <nova_senha>\n");
-                puts("ps      Syntax: ps\n");
-                puts("pwd     Syntax: pwd\n");
-                puts("shutdown Syntax: shutdown\n");
-                puts("stego   Syntax: stego extract <imagem>\n");
-                puts("su      Syntax: su <usuario>\n");
-                puts("submit  Syntax: submit <flag>\n");
-                puts("sudo    Syntax: sudo <comando>\n");
-                puts("who     Syntax: who\n");
-                puts("whoami  Syntax: whoami\n");
+                int total = (int)(sizeof(command_catalog) / sizeof(command_catalog[0]));
+                for (int i = 0; i < total; ++i) {
+                    command_meta_print_single(&command_catalog[i]);
+                    puts("----------------------------------------\n");
+                }
             } else {
-                puts("Command: ");
-                puts(arg);
-                puts("\nUse 'help' para lista de comandos e contexto da missao.\n");
+                const struct command_meta *meta = command_meta_find(arg);
+                if (!meta) {
+                    puts("Command not found: ");
+                    puts(arg);
+                    putchar('\n');
+                } else {
+                    command_meta_print_single(meta);
+                }
             }
             continue;
         }
@@ -2925,6 +3360,10 @@ reparse_line:
                         puts("arquivo nao encontrado\n");
                         continue;
                     }
+                    if (!file_can_read_idx(fidx)) {
+                        puts("permission denied\n");
+                        continue;
+                    }
 
                     int shift = 0;
                     for (int i = 0; tok3[i] != '\0'; ++i) {
@@ -2948,6 +3387,10 @@ reparse_line:
                         puts("arquivo nao encontrado\n");
                         continue;
                     }
+                    if (!file_can_read_idx(fidx)) {
+                        puts("permission denied\n");
+                        continue;
+                    }
 
                     decrypt_vigenere_to_buf(fs_files[fidx].content, tok3, out, 512);
                     puts(out);
@@ -2969,6 +3412,10 @@ reparse_line:
 
                     resolve_path(target, path);
                     int fidx = file_find(path);
+                    if (fidx >= 0 && !file_can_read_idx(fidx)) {
+                        puts("permission denied\n");
+                        continue;
+                    }
                     input = (fidx >= 0) ? fs_files[fidx].content : target;
                     decrypt_caesar_to_buf(input, shift, out, 512);
                     puts(out);
@@ -2978,6 +3425,10 @@ reparse_line:
 
                 resolve_path(arg, path);
                 int fidx = file_find(path);
+                if (fidx >= 0 && !file_can_read_idx(fidx)) {
+                    puts("permission denied\n");
+                    continue;
+                }
                 input = (fidx >= 0) ? fs_files[fidx].content : arg;
 
                 int found = 0;
@@ -3023,10 +3474,18 @@ reparse_line:
 
                 resolve_path(rest, path);
                 int fidx = file_find(path);
+                if (fidx >= 0 && !file_can_read_idx(fidx)) {
+                    puts("permission denied\n");
+                    continue;
+                }
                 input = (fidx >= 0) ? fs_files[fidx].content : rest;
             } else {
                 resolve_path(arg, path);
                 int fidx = file_find(path);
+                if (fidx >= 0 && !file_can_read_idx(fidx)) {
+                    puts("permission denied\n");
+                    continue;
+                }
                 input = (fidx >= 0) ? fs_files[fidx].content : arg;
                 str_copy(mode, "auto", 16);
             }
@@ -3172,6 +3631,10 @@ reparse_line:
             char path[128];
             resolve_path(value, path);
             int idx = file_find(path);
+            if (idx >= 0 && !file_can_read_idx(idx)) {
+                puts("permission denied\n");
+                continue;
+            }
             const char *content = (idx >= 0) ? fs_files[idx].content : value;
 
             if (str_eq(mode, "generate")) {
@@ -3235,6 +3698,10 @@ reparse_line:
                 putchar('\n');
                 continue;
             }
+            if (!file_can_read_idx(idx)) {
+                puts("permission denied\n");
+                continue;
+            }
 
             const char *content = fs_files[idx].content;
             if (starts_with(content, "STEGOMSG:")) {
@@ -3262,6 +3729,10 @@ reparse_line:
                 putchar('\n');
                 continue;
             }
+            if (!file_can_read_idx(idx)) {
+                puts("permission denied\n");
+                continue;
+            }
 
             char lower[512];
             to_lower_copy(fs_files[idx].content, lower, 512);
@@ -3269,7 +3740,7 @@ reparse_line:
             if (str_contains(lower, "failed login root") && str_contains(lower, "successful login analyst")) {
                 puts("Hidden directory unlocked: /usr/bin\n");
                 puts("The suspicious log entry points to /usr/bin/backup.sh\n");
-                if (file_create("/usr/bin/backup.sh")) {
+                if (file_create_with_meta("/usr/bin/backup.sh", "root", "755")) {
                     int bidx = file_find("/usr/bin/backup.sh");
                     if (bidx >= 0) {
                         str_copy(fs_files[bidx].content, "#!/bin/bash\necho 'Running backup...'\n", 512);
@@ -3309,7 +3780,7 @@ reparse_line:
                 continue;
             }
 
-            file_create("/root/final.key");
+            file_create_with_meta("/root/final.key", "root", "600");
             int fidx = file_find("/root/final.key");
             if (fidx >= 0) {
                 str_copy(fs_files[fidx].content,
@@ -3386,6 +3857,7 @@ reparse_line:
 
 void kernel_main(void) {
     serial_init();
+    detect_text_mode_geometry();
     serial_puts_raw("BOOT:0 enter kernel_main\n");
     fs_init();
     serial_puts_raw("BOOT:0.5 fs ok\n");
