@@ -139,6 +139,32 @@ static void puts(const char *str) {
     }
 }
 
+static void erase_prev_char(uint16_t min_cursor) {
+    if (cursor_pos <= min_cursor) {
+        return;
+    }
+
+    cursor_pos--;
+    VGA[cursor_pos] = (uint16_t)' ' | (default_color << 8);
+    serial_putchar('\b');
+    serial_putchar(' ');
+    serial_putchar('\b');
+}
+
+static void render_input_buffer(uint16_t line_start, const char *buffer, int length, int rendered_length, int cursor_index) {
+    uint16_t blank = (uint16_t)' ' | (default_color << 8);
+
+    for (int i = 0; i < length; ++i) {
+        VGA[line_start + i] = (uint16_t)buffer[i] | (default_color << 8);
+    }
+
+    for (int i = length; i < rendered_length; ++i) {
+        VGA[line_start + i] = blank;
+    }
+
+    cursor_pos = line_start + (uint16_t)cursor_index;
+}
+
 static void print_uint(uint32_t value) {
     char buffer[11];
     int pos = 0;
@@ -354,6 +380,30 @@ static void str_concat(char *dst, const char *src, int max_len) {
 
 static int str_eq(const char *a, const char *b) {
     return strcmp(a, b) == 0;
+}
+
+static void print_ls_cell(const char *name, int is_dir, int col_width) {
+    int used = 0;
+    int max_name = col_width - (is_dir ? 2 : 1);
+
+    if (max_name < 1) {
+        max_name = 1;
+    }
+
+    for (int i = 0; name[i] != '\0' && used < max_name; ++i) {
+        putchar(name[i]);
+        used++;
+    }
+
+    if (is_dir && used < col_width) {
+        putchar('/');
+        used++;
+    }
+
+    while (used < col_width) {
+        putchar(' ');
+        used++;
+    }
 }
 
 static void log_event(const char *msg) {
@@ -1835,10 +1885,109 @@ static char input_read_char(void) {
 
 static void read_line(char *buffer, int max_length) {
     int length = 0;
-    buffer[0] = '\0';
+    int cursor_index = 0;
+    int rendered_length = 0;
+    int history_index = -1;
+    int draft_len = 0;
+    char draft_buffer[128];
+    uint16_t line_start = cursor_pos;
+    int line_capacity = VGA_WIDTH - (line_start % VGA_WIDTH);
+    int line_limit = max_length - 1;
 
-    while (length < max_length - 1) {
+    if (line_capacity < 1) {
+        line_capacity = 1;
+    }
+    if (line_limit > line_capacity) {
+        line_limit = line_capacity;
+    }
+
+    if (line_limit > (int)sizeof(draft_buffer) - 1) {
+        line_limit = (int)sizeof(draft_buffer) - 1;
+    }
+
+    buffer[0] = '\0';
+    draft_buffer[0] = '\0';
+
+    while (1) {
         char c = input_read_char();
+        uint8_t uc = (uint8_t)c;
+
+        if (uc == 0x1B) {
+            if (serial_has_data()) {
+                char seq1 = (char)inb(SERIAL_PORT);
+                if (seq1 == '[' && serial_has_data()) {
+                    char seq2 = (char)inb(SERIAL_PORT);
+                    if (seq2 == 'A') {
+                        if (history_count > 0) {
+                            if (history_index < 0) {
+                                draft_len = length;
+                                for (int i = 0; i < draft_len; ++i) {
+                                    draft_buffer[i] = buffer[i];
+                                }
+                                draft_buffer[draft_len] = '\0';
+                                history_index = history_count - 1;
+                            } else if (history_index > 0) {
+                                history_index--;
+                            }
+
+                            int src_len = str_len(command_history[history_index]);
+                            if (src_len > line_limit) {
+                                src_len = line_limit;
+                            }
+                            for (int i = 0; i < src_len; ++i) {
+                                buffer[i] = command_history[history_index][i];
+                            }
+                            buffer[src_len] = '\0';
+                            length = src_len;
+                            cursor_index = length;
+                            render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+                            rendered_length = length;
+                        }
+                    } else if (seq2 == 'B') {
+                        if (history_index >= 0) {
+                            if (history_index < history_count - 1) {
+                                history_index++;
+                                int src_len = str_len(command_history[history_index]);
+                                if (src_len > line_limit) {
+                                    src_len = line_limit;
+                                }
+                                for (int i = 0; i < src_len; ++i) {
+                                    buffer[i] = command_history[history_index][i];
+                                }
+                                buffer[src_len] = '\0';
+                                length = src_len;
+                            } else {
+                                history_index = -1;
+                                length = draft_len;
+                                if (length > line_limit) {
+                                    length = line_limit;
+                                }
+                                for (int i = 0; i < length; ++i) {
+                                    buffer[i] = draft_buffer[i];
+                                }
+                                buffer[length] = '\0';
+                            }
+                            cursor_index = length;
+                            render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+                            rendered_length = length;
+                        }
+                    } else if (seq2 == 'D') {
+                        if (cursor_index > 0) {
+                            cursor_index--;
+                            cursor_pos = line_start + (uint16_t)cursor_index;
+                            serial_puts_raw("\x1b[D");
+                        }
+                    } else if (seq2 == 'C') {
+                        if (cursor_index < length) {
+                            cursor_index++;
+                            cursor_pos = line_start + (uint16_t)cursor_index;
+                            serial_puts_raw("\x1b[C");
+                        }
+                    }
+                }
+            }
+            continue;
+        }
 
         if (c == '\n') {
             putchar(c);
@@ -1846,24 +1995,67 @@ static void read_line(char *buffer, int max_length) {
         }
 
         if (c == '\b') {
-            if (length > 0) {
-                --length;
-                buffer[length] = '\0';
-                putchar('\b');
-                putchar(' ');
-                putchar('\b');
+            if (cursor_index > 0) {
+                history_index = -1;
+                if (cursor_index == length) {
+                    --length;
+                    --cursor_index;
+                    buffer[length] = '\0';
+                    erase_prev_char(line_start);
+                    rendered_length = length;
+                } else {
+                    for (int i = cursor_index - 1; i < length - 1; ++i) {
+                        buffer[i] = buffer[i + 1];
+                    }
+                    --length;
+                    --cursor_index;
+                    buffer[length] = '\0';
+                    render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+                    rendered_length = length;
+                }
             }
             continue;
         }
 
         if (c == '\t') {
-            length = command_autocomplete(buffer, length, max_length);
+            if (cursor_index == length) {
+                length = command_autocomplete(buffer, length, line_limit + 1);
+                cursor_index = length;
+                line_start = cursor_pos - (uint16_t)length;
+                rendered_length = length;
+                history_index = -1;
+            }
             continue;
         }
 
-        putchar(c);
-        buffer[length++] = c;
+        if (uc < 0x20 || uc == 0x7F) {
+            continue;
+        }
+
+        if (length >= line_limit) {
+            continue;
+        }
+
+        if (cursor_index == length) {
+            history_index = -1;
+            putchar(c);
+            buffer[length++] = c;
+            buffer[length] = '\0';
+            cursor_index = length;
+            rendered_length = length;
+            continue;
+        }
+
+        history_index = -1;
+        for (int i = length; i > cursor_index; --i) {
+            buffer[i] = buffer[i - 1];
+        }
+        buffer[cursor_index] = c;
+        length++;
+        cursor_index++;
         buffer[length] = '\0';
+        render_input_buffer(line_start, buffer, length, rendered_length, cursor_index);
+        rendered_length = length;
     }
 
     buffer[length] = '\0';
@@ -2009,6 +2201,9 @@ reparse_line:
         if (strncmp(line, "ls", 2) == 0) {
             char target[128];
             const char *arg = skip_spaces(line + 2);
+            const int col_width = 20;
+            int cols = VGA_WIDTH / col_width;
+            int col = 0;
 
             if (*arg == '\0') {
                 str_copy(target, current_path, 128);
@@ -2021,17 +2216,33 @@ reparse_line:
                 continue;
             }
 
+            if (cols < 1) {
+                cols = 1;
+            }
+
             for (int i = 0; i < MAX_DIRS; ++i) {
                 if (fs_dirs[i].used && !is_root_path(fs_dirs[i].path) && is_direct_child(target, fs_dirs[i].path)) {
-                    puts(base_name(fs_dirs[i].path));
-                    puts("/\n");
+                    print_ls_cell(base_name(fs_dirs[i].path), 1, col_width);
+                    col++;
+                    if (col >= cols) {
+                        putchar('\n');
+                        col = 0;
+                    }
                 }
             }
             for (int i = 0; i < MAX_FILES; ++i) {
                 if (fs_files[i].used && is_direct_child(target, fs_files[i].path)) {
-                    puts(base_name(fs_files[i].path));
-                    putchar('\n');
+                    print_ls_cell(base_name(fs_files[i].path), 0, col_width);
+                    col++;
+                    if (col >= cols) {
+                        putchar('\n');
+                        col = 0;
+                    }
                 }
+            }
+
+            if (col != 0) {
+                putchar('\n');
             }
             continue;
         }

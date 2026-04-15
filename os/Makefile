@@ -7,7 +7,7 @@ OBJS=boot.o kernel.o irq.o
 
 .PHONY: all clean run
 
-all: os.iso
+all: INITIUM.iso
 
 boot.o: boot.asm
 	$(AS) -f elf32 boot.asm -o boot.o
@@ -21,16 +21,16 @@ kernel.o: kernel.c
 kernel.bin: $(OBJS)
 	$(LD) $(LDFLAGS) -o kernel.bin $(OBJS)
 
-os.iso: kernel.bin grub.cfg
+INITIUM.iso: kernel.bin grub.cfg
 	rm -rf isodir
 	mkdir -p isodir/boot/grub
 	cp kernel.bin isodir/boot/
 	cp grub.cfg isodir/boot/grub/
-	grub-mkrescue -o os.iso isodir
+	grub-mkrescue -o INITIUM.iso isodir
 
-run: os.iso
-	qemu-system-i386 -cdrom os.iso -boot d -m 512 -nographic -monitor none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+run: INITIUM.iso
+	qemu-system-i386 -cdrom INITIUM.iso -boot d -m 512 -nographic -monitor none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
 clean:
-	rm -f *.o kernel.bin os.iso
+	rm -f *.o kernel.bin INITIUM.iso os.iso
 	rm -rf isodir
