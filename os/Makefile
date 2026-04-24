@@ -5,7 +5,7 @@ CFLAGS=-m32 -nostdlib -fno-builtin -fno-stack-protector -O2 -Wall -Wextra
 LDFLAGS=-m elf_i386 -T linker.ld
 OBJS=boot.o kernel.o irq.o
 
-.PHONY: all clean run
+.PHONY: all clean run boot-smoke
 
 all: INITIUM.iso
 
@@ -30,6 +30,9 @@ INITIUM.iso: kernel.bin grub.cfg
 
 run: INITIUM.iso
 	qemu-system-i386 -cdrom INITIUM.iso -boot d -m 512 -nographic -monitor none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+
+boot-smoke:
+	bash ./scripts/boot_smoke.sh
 
 clean:
 	rm -f *.o kernel.bin INITIUM.iso os.iso

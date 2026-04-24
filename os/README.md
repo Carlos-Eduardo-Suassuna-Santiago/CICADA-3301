@@ -3,6 +3,7 @@
 Este subprojeto é um kernel mínimo bootável desenvolvido como um sistema operacional real.
 
 ## Requisitos
+
 - nasm
 - gcc-multilib ou gcc com suporte a `-m32`
 - binutils
@@ -10,13 +11,23 @@ Este subprojeto é um kernel mínimo bootável desenvolvido como um sistema oper
 - qemu-system-i386
 
 ## Uso
+
 ```bash
 cd os
 make
 make run
 ```
 
+### Validação automatizada
+
+```bash
+make boot-smoke
+```
+
+Esse alvo recompila a ISO, verifica a assinatura Multiboot do kernel e confirma que o boot chega até a tela de login.
+
 ## Recursos atuais
+
 - kernel mínimo em modo protegido
 - GDT/segmentação configurada
 - IDT inicializada e PIC remapeado
@@ -28,5 +39,6 @@ make run
 - shell basico com comandos `help`, `clear`, `echo`, `pwd`, `ls`, `cd`, `cat`, `touch`, `mkdir`, `rmdir`, `rm`, `write`, `append`, `cp`, `mv`, `history`, `find`, `tree`, `login`, `logout`, `passwd`, `su`, `sudo`, `who`, `whoami`, `uname`, `ps`, `logread`, `manual`, `decode`, `decrypt`, `hash`, `stego`, `analyze`, `exploit`, `submit`, `hint`, `ticks`, `tasks`, `syscall`, `shutdown` e `exit`
 - saída também enviada para a porta serial COM1 para testes com QEMU `-nographic`
 - comando dedicado `hint` com dicas por nível (`hint` e `hint <numero>`)
+- configuração do GRUB com console local + serial e `gfxpayload=text` para compatibilidade com VirtualBox e hardware BIOS
 
 O arquivo gerado é `os/os.iso`.
