@@ -1935,6 +1935,60 @@ static char scancode_map[128] = {
     'm', ',', '.', '/', 0, '*', 0, ' ',
 };
 
+static char scancode_map_set2[128] = {
+    [0x0D] = '\t',
+    [0x0E] = '`',
+    [0x15] = 'q',
+    [0x16] = '1',
+    [0x1A] = 'z',
+    [0x1B] = 's',
+    [0x1C] = 'a',
+    [0x1D] = 'w',
+    [0x1E] = '2',
+    [0x21] = 'c',
+    [0x22] = 'x',
+    [0x23] = 'd',
+    [0x24] = 'e',
+    [0x25] = '4',
+    [0x26] = '3',
+    [0x29] = ' ',
+    [0x2A] = 'v',
+    [0x2B] = 'f',
+    [0x2C] = 't',
+    [0x2D] = 'r',
+    [0x2E] = '5',
+    [0x31] = 'n',
+    [0x32] = 'b',
+    [0x33] = 'h',
+    [0x34] = 'g',
+    [0x35] = 'y',
+    [0x36] = '6',
+    [0x3A] = 'm',
+    [0x3B] = 'j',
+    [0x3C] = 'u',
+    [0x3D] = '7',
+    [0x3E] = '8',
+    [0x41] = ',',
+    [0x42] = 'k',
+    [0x43] = 'i',
+    [0x44] = 'o',
+    [0x45] = '0',
+    [0x46] = '9',
+    [0x49] = '.',
+    [0x4A] = '/',
+    [0x4B] = 'l',
+    [0x4C] = ';',
+    [0x4D] = 'p',
+    [0x4E] = '-',
+    [0x52] = '\'',
+    [0x54] = '[',
+    [0x55] = '=',
+    [0x5A] = '\n',
+    [0x5B] = ']',
+    [0x5D] = '\\',
+    [0x66] = '\b',
+};
+
 static volatile char keyboard_buffer[256];
 static volatile uint8_t kb_head = 0;
 static volatile uint8_t kb_tail = 0;
@@ -1942,6 +1996,7 @@ static volatile uint32_t timer_ticks = 0;
 static volatile uint32_t worker_cycles = 0;
 static volatile uint8_t kb_ext = 0;
 static volatile uint8_t kb_break = 0;
+static volatile uint8_t kb_scancode_set = 1;
 
 #define KEY_LEFT  0x11
 #define KEY_RIGHT 0x12
@@ -2028,6 +2083,7 @@ void keyboard_handler(void) {
     }
 
     if (scancode == 0xF0) {
+        kb_scancode_set = 2;
         kb_break = 1;
         return;
     }
@@ -2067,11 +2123,21 @@ void keyboard_handler(void) {
     }
 
     if (scancode & 0x80) {
+        if (kb_scancode_set != 2) {
+            kb_scancode_set = 1;
+        }
         return;
     }
 
     if (scancode < sizeof(scancode_map)) {
-        char c = scancode_map[scancode];
+        char c;
+
+        if (kb_scancode_set == 2) {
+            c = scancode_map_set2[scancode];
+        } else {
+            c = scancode_map[scancode];
+        }
+
         if (c) {
             keyboard_buffer[kb_head] = c;
             kb_head = (kb_head + 1) & 0xFF;
@@ -2450,8 +2516,9 @@ static void session_login_prompt(void) {
     char username[32];
     char password[32];
 
+    clear_screen();
+
     while (!session_authenticated) {
-        clear_screen();
         puts("INITIUM-OS shell.\n");
         puts("=== LOGIN ===\n\n");
 
@@ -2476,6 +2543,7 @@ static void session_login_prompt(void) {
         } else {
             log_event("LOGIN FAIL");
             puts("credenciais invalidas\n");
+            puts("\n");
         }
     }
 }
