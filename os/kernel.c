@@ -13,6 +13,8 @@ static const uint8_t default_color = 0x07;
 static uint16_t screen_width = VGA_DEFAULT_WIDTH;
 static uint16_t screen_height = VGA_DEFAULT_HEIGHT;
 static uint16_t ui_header_lines = UI_HEADER_DEFAULT_LINES;
+/* Serial output stays enabled for logs; serial input is opt-in to avoid phantom input on GUI VMs. */
+static uint8_t serial_input_enabled = 0;
 
 static inline uint8_t inb(uint16_t port) {
     uint8_t value;
@@ -1998,6 +2000,17 @@ static volatile uint8_t kb_ext = 0;
 static volatile uint8_t kb_break = 0;
 static volatile uint8_t kb_scancode_set = 1;
 
+static inline void keyboard_buffer_push(char c) {
+    uint8_t next = (uint8_t)((kb_head + 1) & 0xFF);
+
+    if (next == kb_tail) {
+        return;
+    }
+
+    keyboard_buffer[kb_head] = c;
+    kb_head = next;
+}
+
 #define KEY_LEFT  0x11
 #define KEY_RIGHT 0x12
 #define KEY_UP    0x13
@@ -2111,8 +2124,7 @@ void keyboard_handler(void) {
         kb_break = 0;
 
         if (nav) {
-            keyboard_buffer[kb_head] = nav;
-            kb_head = (kb_head + 1) & 0xFF;
+            keyboard_buffer_push(nav);
         }
         return;
     }
@@ -2139,8 +2151,7 @@ void keyboard_handler(void) {
         }
 
         if (c) {
-            keyboard_buffer[kb_head] = c;
-            kb_head = (kb_head + 1) & 0xFF;
+            keyboard_buffer_push(c);
         }
     }
 }
@@ -2162,7 +2173,7 @@ static int input_read_char(void) {
             return (int)c;
         }
 
-        if (serial_has_data()) {
+        if (serial_input_enabled && serial_has_data()) {
             char c = (char)inb(SERIAL_PORT);
             if (c == '\r') {
                 session_last_activity_ticks = timer_ticks;
