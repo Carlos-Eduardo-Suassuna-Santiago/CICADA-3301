@@ -2,8 +2,8 @@
 
 #define VGA_DEFAULT_WIDTH 80
 #define VGA_DEFAULT_HEIGHT 25
-#define UI_HEADER_DEFAULT_LINES 11
-#define UI_HEADER_COMPACT_LINES 7
+#define UI_HEADER_DEFAULT_LINES 13
+#define UI_HEADER_COMPACT_LINES 6
 #define VGA_MEMORY ((volatile uint16_t *)0xB8000)
 #define VGA_CTRL_REGISTER 0x3D4
 #define VGA_DATA_REGISTER 0x3D5
@@ -125,13 +125,12 @@ static void detect_text_mode_geometry(void) {
     screen_width = cols;
     screen_height = rows;
 
-    if (screen_width < 80 || screen_height < 24) {
+    if (screen_width < 80) {
         ui_header_lines = UI_HEADER_COMPACT_LINES;
     } else {
         ui_header_lines = UI_HEADER_DEFAULT_LINES;
     }
 
-    /* Keep a fixed command area so shell text never reaches logo rows. */
     if (ui_header_lines >= screen_height) {
         ui_header_lines = (screen_height > 5) ? (screen_height - 5) : 1;
     }
@@ -171,7 +170,6 @@ static struct idt_ptr idt_ptr;
 static volatile uint32_t timer_ticks;
 
 static void print_boot_logo(void);
-static void draw_ui_section_divider(void);
 static void render_scrollbar(void);
 static int str_contains(const char *text, const char *pattern);
 static void sha256_to_hex(const char *input, char *out_hex, int out_hex_len);
@@ -1845,7 +1843,6 @@ static void clear_screen(void) {
     update_vga_cursor();
     serial_puts_raw("\x1b[2J\x1b[3J\x1b[H\x1b[0m");
     print_boot_logo();
-    draw_ui_section_divider();
     cursor_pos = ui_header_lines * screen_width;
     update_vga_cursor();
     render_scrollbar();
@@ -1907,27 +1904,6 @@ static void print_boot_logo(void) {
     puts_centered_line("|          S E C U R E   C T F   K E R N E L   E N V I R O N M E N T           |");
     puts_centered_line("+------------------------------------------------------------------------------+");
     putchar('\n');
-}
-
-static void draw_ui_section_divider(void) {
-    if (screen_height < 2 || screen_width < 2) {
-        return;
-    }
-
-    uint16_t divider_row = (ui_header_lines > 0) ? (ui_header_lines - 1) : 0;
-    if (divider_row >= screen_height) {
-        divider_row = screen_height - 1;
-    }
-
-    uint16_t edge = (uint16_t)'+' | (default_color << 8);
-    uint16_t bar = (uint16_t)'-' | (default_color << 8);
-
-    for (uint16_t x = 0; x < screen_width; ++x) {
-        VGA[divider_row * screen_width + x] = bar;
-    }
-
-    VGA[divider_row * screen_width] = edge;
-    VGA[divider_row * screen_width + (screen_width - 1)] = edge;
 }
 
 static void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity) {
