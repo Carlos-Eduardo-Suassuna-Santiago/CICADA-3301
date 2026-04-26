@@ -2,7 +2,7 @@
 
 #define VGA_DEFAULT_WIDTH 80
 #define VGA_DEFAULT_HEIGHT 25
-#define UI_HEADER_DEFAULT_LINES 11
+#define UI_HEADER_DEFAULT_LINES 13
 #define UI_HEADER_COMPACT_LINES 6
 #define VGA_MEMORY ((volatile uint16_t *)0xB8000)
 #define VGA_CTRL_REGISTER 0x3D4
@@ -15,6 +15,7 @@ static const uint8_t default_color = 0x07;
 static uint16_t screen_width = VGA_DEFAULT_WIDTH;
 static uint16_t screen_height = VGA_DEFAULT_HEIGHT;
 static uint16_t ui_header_lines = UI_HEADER_DEFAULT_LINES;
+static uint16_t scrollback_offset = 0;
 /* Serial output stays enabled for logs; serial input is opt-in to avoid phantom input on GUI VMs. */
 static uint8_t serial_input_enabled = 0;
 
@@ -52,6 +53,16 @@ static void enable_vga_cursor(void) {
     uint8_t cursor_end = inb(VGA_DATA_REGISTER) & 0xE0;
     cursor_end |= 15;
     outb(VGA_DATA_REGISTER, cursor_end);
+}
+
+static void render_scrollbar(void) {
+    uint16_t visible_lines = screen_height - ui_header_lines;
+    if (visible_lines > 0) {
+        for (uint16_t i = 0; i < visible_lines; ++i) {
+            uint16_t idx = (ui_header_lines + i) * screen_width + (screen_width - 1);
+            VGA[idx] = (uint16_t)0xB3 | (default_color << 8);
+        }
+    }
 }
 
 static inline uint8_t serial_is_transmit_empty(void) {
@@ -121,7 +132,7 @@ static void detect_text_mode_geometry(void) {
     }
 
     if (ui_header_lines >= screen_height) {
-        ui_header_lines = (screen_height > 3) ? (screen_height - 3) : 1;
+        ui_header_lines = (screen_height > 5) ? (screen_height - 5) : 1;
     }
 }
 
@@ -159,6 +170,7 @@ static struct idt_ptr idt_ptr;
 static volatile uint32_t timer_ticks;
 
 static void print_boot_logo(void);
+static void render_scrollbar(void);
 static int str_contains(const char *text, const char *pattern);
 static void sha256_to_hex(const char *input, char *out_hex, int out_hex_len);
 
@@ -182,7 +194,9 @@ static void scroll(void) {
         VGA[(screen_height - 1) * screen_width + x] = blank;
     }
     cursor_pos = (screen_height - 1) * screen_width;
+    scrollback_offset++;
     update_vga_cursor();
+    render_scrollbar();
 }
 
 static void putchar(char c) {
@@ -1831,6 +1845,7 @@ static void clear_screen(void) {
     print_boot_logo();
     cursor_pos = ui_header_lines * screen_width;
     update_vga_cursor();
+    render_scrollbar();
 }
 
 static void sleep_ticks(uint32_t tick_count) {
