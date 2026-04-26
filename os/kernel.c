@@ -2,9 +2,11 @@
 
 #define VGA_DEFAULT_WIDTH 80
 #define VGA_DEFAULT_HEIGHT 25
-#define UI_HEADER_DEFAULT_LINES 11
+#define UI_HEADER_DEFAULT_LINES 10
 #define UI_HEADER_COMPACT_LINES 6
 #define VGA_MEMORY ((volatile uint16_t *)0xB8000)
+#define VGA_CTRL_REGISTER 0x3D4
+#define VGA_DATA_REGISTER 0x3D5
 #define SERIAL_PORT 0x3F8
 
 static volatile uint16_t *const VGA = VGA_MEMORY;
@@ -28,6 +30,14 @@ static inline void outb(uint16_t port, uint8_t value) {
 
 static inline void outw(uint16_t port, uint16_t value) {
     __asm__ volatile ("outw %0, %1" : : "a" (value), "Nd" (port));
+}
+
+static void update_vga_cursor(void) {
+    uint16_t pos = cursor_pos;
+    outb(VGA_CTRL_REGISTER, 14);
+    outb(VGA_DATA_REGISTER, (uint8_t)((pos >> 8) & 0xFF));
+    outb(VGA_CTRL_REGISTER, 15);
+    outb(VGA_DATA_REGISTER, (uint8_t)(pos & 0xFF));
 }
 
 static inline uint8_t serial_is_transmit_empty(void) {
@@ -158,6 +168,7 @@ static void scroll(void) {
         VGA[(screen_height - 1) * screen_width + x] = blank;
     }
     cursor_pos = (screen_height - 1) * screen_width;
+    update_vga_cursor();
 }
 
 static void putchar(char c) {
@@ -174,6 +185,7 @@ static void putchar(char c) {
     if (cursor_pos >= screen_width * screen_height) {
         scroll();
     }
+    update_vga_cursor();
     serial_putchar(c);
 }
 
@@ -214,6 +226,7 @@ static void erase_prev_char(uint16_t min_cursor) {
 
     cursor_pos--;
     VGA[cursor_pos] = (uint16_t)' ' | (default_color << 8);
+    update_vga_cursor();
     serial_putchar('\b');
     serial_putchar(' ');
     serial_putchar('\b');
@@ -231,6 +244,7 @@ static void render_input_buffer(uint16_t line_start, const char *buffer, int len
     }
 
     cursor_pos = line_start + (uint16_t)cursor_index;
+    update_vga_cursor();
 }
 
 static void print_uint(uint32_t value) {
@@ -1798,9 +1812,11 @@ static void clear_screen(void) {
         VGA[i] = blank;
     }
     cursor_pos = 0;
+    update_vga_cursor();
     serial_puts_raw("\x1b[2J\x1b[3J\x1b[H\x1b[0m");
     print_boot_logo();
     cursor_pos = ui_header_lines * screen_width;
+    update_vga_cursor();
 }
 
 static void sleep_ticks(uint32_t tick_count) {
@@ -2324,6 +2340,7 @@ static int read_line(char *buffer, int max_length) {
             if (cursor_index > 0) {
                 cursor_index--;
                 cursor_pos = line_start + (uint16_t)cursor_index;
+                update_vga_cursor();
                 serial_puts_raw("\x1b[D");
             }
             continue;
@@ -2333,6 +2350,7 @@ static int read_line(char *buffer, int max_length) {
             if (cursor_index < length) {
                 cursor_index++;
                 cursor_pos = line_start + (uint16_t)cursor_index;
+                update_vga_cursor();
                 serial_puts_raw("\x1b[C");
             }
             continue;
