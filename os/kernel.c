@@ -1843,6 +1843,13 @@ static void clear_screen(void) {
     update_vga_cursor();
     serial_puts_raw("\x1b[2J\x1b[3J\x1b[H\x1b[0m");
     print_boot_logo();
+
+    /* Deriva o início da área de input a partir do logo já renderizado. */
+    ui_header_lines = cursor_pos / screen_width;
+    if (ui_header_lines >= screen_height) {
+        ui_header_lines = (screen_height > 2) ? (screen_height - 2) : 1;
+    }
+
     cursor_pos = ui_header_lines * screen_width;
     update_vga_cursor();
     render_scrollbar();
