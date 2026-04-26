@@ -40,6 +40,20 @@ static void update_vga_cursor(void) {
     outb(VGA_DATA_REGISTER, (uint8_t)(pos & 0xFF));
 }
 
+static void enable_vga_cursor(void) {
+    // Registrador 0x0A: Cursor Start Register
+    // Bit 5 (0x20) = 1 para desabilitar cursor, 0 para habilitar
+    outb(VGA_CTRL_REGISTER, 0x0A);
+    uint8_t cursor_start = inb(VGA_DATA_REGISTER) & 0x1F;
+    outb(VGA_DATA_REGISTER, cursor_start);
+    
+    // Registrador 0x0B: Cursor End Register
+    outb(VGA_CTRL_REGISTER, 0x0B);
+    uint8_t cursor_end = inb(VGA_DATA_REGISTER) & 0xE0;
+    cursor_end |= 15;
+    outb(VGA_DATA_REGISTER, cursor_end);
+}
+
 static inline uint8_t serial_is_transmit_empty(void) {
     return inb(SERIAL_PORT + 5) & 0x20;
 }
@@ -3981,6 +3995,7 @@ void kernel_main(void) {
     serial_puts_raw("BOOT:6 sti on\n");
 
     clear_screen();
+    enable_vga_cursor();
     puts("INITIUM-OS kernel carregado.\n");
     puts("Kernel minimo com PIT, IDT e teclado por IRQ.\n\n");
     serial_puts_raw("BOOT:7 shell start\n");
