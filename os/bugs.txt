@@ -1,3 +1,1 @@
-o sistema apresenta dois bugs que precisam ser corrigidos, conforme na imagem em anexo.
-1. A parte digitavel do software esta sobreposta na parte da logo do sistema
-2. O cursor nao esta aparecendo na linha digitavel
+Corrigir o scrool e mostrar o cursor do mouse na tela 
