@@ -2130,6 +2130,8 @@ static volatile uint8_t kb_ext = 0;
 static volatile uint8_t kb_break = 0;
 static volatile uint8_t kb_scancode_set = 1;
 
+static int keyboard_poll_input(void);
+
 static inline void keyboard_buffer_push(char c) {
     uint8_t next = (uint8_t)((kb_head + 1) & 0xFF);
 
@@ -2141,10 +2143,245 @@ static inline void keyboard_buffer_push(char c) {
     kb_head = next;
 }
 
+static int ps2_wait_input_clear(void) {
+    for (int i = 0; i < 100000; ++i) {
+        if ((inb(0x64) & 0x02) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int ps2_wait_output_full(void) {
+    for (int i = 0; i < 100000; ++i) {
+        if (inb(0x64) & 0x01) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void ps2_flush_output(void) {
+    for (int i = 0; i < 64; ++i) {
+        if ((inb(0x64) & 0x01) == 0) {
+            break;
+        }
+        (void)inb(0x60);
+    }
+}
+
+static void init_ps2_keyboard(void) {
+    uint8_t command_byte = 0;
+
+    ps2_flush_output();
+
+    if (ps2_wait_input_clear()) {
+        outb(0x64, 0xAE); /* Enable first PS/2 port */
+    }
+
+    if (ps2_wait_input_clear()) {
+        outb(0x64, 0x20); /* Read controller command byte */
+        if (ps2_wait_output_full()) {
+            command_byte = inb(0x60);
+            command_byte |= 0x01;   /* Enable IRQ1 */
+            command_byte |= 0x40;   /* Enable translation to set 1 */
+            command_byte &= (uint8_t)~0x10; /* Ensure first port clock enabled */
+
+            if (ps2_wait_input_clear()) {
+                outb(0x64, 0x60); /* Write controller command byte */
+                if (ps2_wait_input_clear()) {
+                    outb(0x60, command_byte);
+                }
+            }
+        }
+    }
+
+    if (ps2_wait_input_clear()) {
+        outb(0x60, 0xF4); /* Enable keyboard scanning */
+    }
+
+    if (ps2_wait_output_full()) {
+        (void)inb(0x60); /* ACK */
+    }
+
+    ps2_flush_output();
+}
+
 #define KEY_LEFT  0x11
 #define KEY_RIGHT 0x12
 #define KEY_UP    0x13
 #define KEY_DOWN  0x14
+
+static void keyboard_process_scancode(uint8_t scancode) {
+    if (scancode == 0xE0) {
+        kb_ext = 1;
+        return;
+    }
+
+    if (scancode == 0xF0) {
+        kb_scancode_set = 2;
+        kb_break = 1;
+        return;
+    }
+
+    if (kb_ext) {
+        char nav = 0;
+
+        if ((scancode & 0x80) || kb_break) {
+            kb_ext = 0;
+            kb_break = 0;
+            return;
+        }
+
+        if (scancode == 0x4B || scancode == 0x6B) {
+            nav = KEY_LEFT;
+        } else if (scancode == 0x4D || scancode == 0x74) {
+            nav = KEY_RIGHT;
+        } else if (scancode == 0x48 || scancode == 0x75) {
+            nav = KEY_UP;
+        } else if (scancode == 0x50 || scancode == 0x72) {
+            nav = KEY_DOWN;
+        }
+
+        kb_ext = 0;
+        kb_break = 0;
+
+        if (nav) {
+            keyboard_buffer_push(nav);
+        }
+        return;
+    }
+
+    if (kb_break) {
+        if (kb_scancode_set == 2) {
+            if (scancode == 0x12 || scancode == 0x59) {
+                kb_shift = 0;
+            } else if (scancode == 0x14) {
+                kb_ctrl = 0;
+            } else if (scancode == 0x11) {
+                kb_alt = 0;
+            }
+        }
+        kb_break = 0;
+        return;
+    }
+
+    if (scancode & 0x80) {
+        if (kb_scancode_set != 2) {
+            if (scancode == 0xAA || scancode == 0xB6) {
+                kb_shift = 0;
+            } else if (scancode == 0x9D) {
+                kb_ctrl = 0;
+            } else if (scancode == 0xB8) {
+                kb_alt = 0;
+            }
+            kb_scancode_set = 1;
+        }
+        return;
+    }
+
+    if (kb_scancode_set == 2) {
+        if (scancode == 0x12 || scancode == 0x59) {
+            kb_shift = 1;
+            return;
+        } else if (scancode == 0x14) {
+            kb_ctrl = 1;
+            return;
+        } else if (scancode == 0x11) {
+            kb_alt = 1;
+            return;
+        }
+    } else {
+        if (scancode == 0x2A || scancode == 0x36) {
+            kb_shift = 1;
+            return;
+        } else if (scancode == 0x1D) {
+            kb_ctrl = 1;
+            return;
+        } else if (scancode == 0x38) {
+            kb_alt = 1;
+            return;
+        }
+    }
+
+    if (scancode < sizeof(scancode_map)) {
+        char c = 0;
+
+        if (kb_shift) {
+            if (kb_scancode_set == 2) {
+                c = scancode_map_set2_shift[scancode];
+                if (!c) {
+                    c = scancode_map_set2[scancode];
+                }
+            } else {
+                c = scancode_map_shift[scancode];
+                if (!c) {
+                    c = scancode_map[scancode];
+                }
+            }
+        } else {
+            if (kb_scancode_set == 2) {
+                c = scancode_map_set2[scancode];
+            } else {
+                c = scancode_map[scancode];
+            }
+        }
+
+        /* Fallback defensivo para VirtualBox/layouts que entregam '[' e ']' mesmo com Shift. */
+        if (kb_shift && c == '[') {
+            c = '{';
+        } else if (kb_shift && c == ']') {
+            c = '}';
+        }
+
+        if (c) {
+            keyboard_buffer_push(c);
+        }
+    }
+}
+
+void keyboard_handler(void) {
+    uint8_t status = inb(0x64);
+
+    if ((status & 0x01) == 0) {
+        return;
+    }
+
+    keyboard_process_scancode(inb(0x60));
+}
+
+void timer_handler(void) {
+    timer_ticks++;
+
+    /* Backup path for VMs where IRQ1 delivery is unreliable. */
+    if ((timer_ticks & 0x03) == 0) {
+        keyboard_poll_input();
+    }
+}
+
+static int keyboard_poll_input(void) {
+    int processed = 0;
+
+    for (;;) {
+        uint8_t status = inb(0x64);
+        uint8_t data;
+
+        if ((status & 0x01) == 0) {
+            break;
+        }
+
+        data = inb(0x60);
+
+        keyboard_process_scancode(data);
+        processed++;
+
+        if (processed >= 32) {
+            break;
+        }
+    }
+
+    return processed;
+}
 
 #define TASK_COUNT 3
 #define TASK_STACK_SIZE 1024
@@ -2213,127 +2450,6 @@ uint32_t syscall_handler(uint32_t *regs) {
     return (uint32_t)-1;
 }
 
-void timer_handler(void) {
-    timer_ticks++;
-}
-
-void keyboard_handler(void) {
-    uint8_t scancode = inb(0x60);
-
-    if (scancode == 0xE0) {
-        kb_ext = 1;
-        return;
-    }
-
-    if (scancode == 0xF0) {
-        kb_scancode_set = 2;
-        kb_break = 1;
-        return;
-    }
-
-    if (kb_ext) {
-        char nav = 0;
-
-        if ((scancode & 0x80) || kb_break) {
-            kb_ext = 0;
-            kb_break = 0;
-            return;
-        }
-
-        if (scancode == 0x4B || scancode == 0x6B) {
-            nav = KEY_LEFT;
-        } else if (scancode == 0x4D || scancode == 0x74) {
-            nav = KEY_RIGHT;
-        } else if (scancode == 0x48 || scancode == 0x75) {
-            nav = KEY_UP;
-        } else if (scancode == 0x50 || scancode == 0x72) {
-            nav = KEY_DOWN;
-        }
-
-        kb_ext = 0;
-        kb_break = 0;
-
-        if (nav) {
-            keyboard_buffer_push(nav);
-        }
-        return;
-    }
-
-    /* Break code (tecla solto) - Set 2 */
-    if (kb_break) {
-        /* Rastrear teclas modificadoras sendo soltas */
-        if (kb_scancode_set == 2) {
-            if (scancode == 0x12 || scancode == 0x59) {
-                kb_shift = 0;  /* Shift esquerdo/direito solto */
-            } else if (scancode == 0x14) {
-                kb_ctrl = 0;   /* Ctrl solto */
-            } else if (scancode == 0x11) {
-                kb_alt = 0;    /* Alt solto */
-            }
-        }
-        kb_break = 0;
-        return;
-    }
-
-    if (scancode & 0x80) {
-        if (kb_scancode_set != 2) {
-            kb_scancode_set = 1;
-        }
-        return;
-    }
-
-    /* Rastrear teclas modificadoras sendo pressionadas */
-    if (kb_scancode_set == 2) {
-        if (scancode == 0x12 || scancode == 0x59) {
-            kb_shift = 1;  /* Shift esquerdo ou direito */
-            return;
-        } else if (scancode == 0x14) {
-            kb_ctrl = 1;   /* Ctrl pressionado */
-            return;
-        } else if (scancode == 0x11) {
-            kb_alt = 1;    /* Alt pressionado */
-            return;
-        }
-    } else {
-        /* Set 1 */
-        if (scancode == 0x2A || scancode == 0x36) {
-            kb_shift = 1;  /* Shift */
-            return;
-        } else if (scancode == 0x1D) {
-            kb_ctrl = 1;   /* Ctrl */
-            return;
-        } else if (scancode == 0x38) {
-            kb_alt = 1;    /* Alt */
-            return;
-        }
-    }
-
-    if (scancode < sizeof(scancode_map)) {
-        char c = 0;
-
-        /* Usar mapa com Shift se Shift estiver pressionado */
-        if (kb_shift) {
-            if (kb_scancode_set == 2) {
-                c = scancode_map_set2_shift[scancode];
-                if (!c) c = scancode_map_set2[scancode];  /* Fallback ao mapa normal */
-            } else {
-                c = scancode_map_shift[scancode];
-                if (!c) c = scancode_map[scancode];  /* Fallback ao mapa normal */
-            }
-        } else {
-            if (kb_scancode_set == 2) {
-                c = scancode_map_set2[scancode];
-            } else {
-                c = scancode_map[scancode];
-            }
-        }
-
-        if (c) {
-            keyboard_buffer_push(c);
-        }
-    }
-}
-
 static int session_timed_out(void) {
     return session_authenticated && (uint32_t)(timer_ticks - session_last_activity_ticks) >= SESSION_TIMEOUT_TICKS;
 }
@@ -2351,6 +2467,10 @@ static int input_read_char(void) {
             return (int)c;
         }
 
+        if (keyboard_poll_input()) {
+            continue;
+        }
+
         if (serial_input_enabled && serial_has_data()) {
             char c = (char)inb(SERIAL_PORT);
             if (c == '\r') {
@@ -2365,7 +2485,8 @@ static int input_read_char(void) {
             return (int)c;
         }
 
-        __asm__ volatile ("hlt");
+        /* Avoid hard blocking on hlt when IRQ1 is flaky in some VirtualBox setups. */
+        __asm__ volatile ("pause");
     }
 }
 
@@ -4126,6 +4247,9 @@ void kernel_main(void) {
 
     pic_remap();
     serial_puts_raw("BOOT:2 pic ok\n");
+
+    init_ps2_keyboard();
+    serial_puts_raw("BOOT:2.5 ps2 ok\n");
 
     task_init();
     serial_puts_raw("BOOT:3 tasks ok\n");

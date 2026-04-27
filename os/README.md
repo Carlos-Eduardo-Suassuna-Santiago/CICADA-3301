@@ -41,4 +41,4 @@ Esse alvo recompila a ISO, verifica a assinatura Multiboot do kernel e confirma 
 - comando dedicado `hint` com dicas por nível (`hint` e `hint <numero>`)
 - configuração do GRUB com console local + serial e `gfxpayload=text` para compatibilidade com VirtualBox e hardware BIOS
 
-O arquivo gerado é `os/os.iso`.
+O arquivo gerado é `os/INITIUM.iso`.
