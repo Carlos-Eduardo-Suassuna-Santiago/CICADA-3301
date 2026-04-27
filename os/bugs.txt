@@ -1,1 +1,1 @@
-Corrigir o scrool e mostrar o cursor do mouse na tela 
+quando vou colocar as {} o teclado nao reconhece e escreve apenas []

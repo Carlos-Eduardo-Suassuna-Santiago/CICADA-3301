@@ -2052,8 +2052,77 @@ static char scancode_map_set2[128] = {
     [0x66] = '\b',
 };
 
+/* Layout ABNT2 com Shift - Teclado Brasileiro (Scancode Set 1) */
+static char scancode_map_shift[128] = {
+    0, 0, '!', '@', '#', '$', '%', '&', '*', '(',
+    ')', '_', '+', '=', '\b', '\t',
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+    '{', '}', '\n', 0,
+    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':',
+    '"', '~', 0, ']', 'Z', 'X', 'C', 'V', 'B', 'N',
+    'M', '<', '>', '?', 0, '*', 0, ' ',
+};
+
+/* Layout ABNT2 com Shift - Teclado Brasileiro (Scancode Set 2) */
+static char scancode_map_set2_shift[128] = {
+    [0x0D] = '\t',
+    [0x0E] = '~',
+    [0x15] = 'Q',
+    [0x16] = '!',
+    [0x1A] = 'Z',
+    [0x1B] = 'S',
+    [0x1C] = 'A',
+    [0x1D] = 'W',
+    [0x1E] = '@',
+    [0x21] = 'C',
+    [0x22] = 'X',
+    [0x23] = 'D',
+    [0x24] = 'E',
+    [0x25] = '$',
+    [0x26] = '#',
+    [0x29] = ' ',
+    [0x2A] = 'V',
+    [0x2B] = 'F',
+    [0x2C] = 'T',
+    [0x2D] = 'R',
+    [0x2E] = '%',
+    [0x31] = 'N',
+    [0x32] = 'B',
+    [0x33] = 'H',
+    [0x34] = 'G',
+    [0x35] = 'Y',
+    [0x36] = '&',
+    [0x3A] = 'M',
+    [0x3B] = 'J',
+    [0x3C] = 'U',
+    [0x3D] = '&',
+    [0x3E] = '*',
+    [0x41] = '<',
+    [0x42] = 'K',
+    [0x43] = 'I',
+    [0x44] = 'O',
+    [0x45] = '(',
+    [0x46] = ')',
+    [0x49] = '>',
+    [0x4A] = '?',
+    [0x4B] = 'L',
+    [0x4C] = ':',
+    [0x4D] = 'P',
+    [0x4E] = '_',
+    [0x52] = '"',
+    [0x54] = '{',
+    [0x55] = '+',
+    [0x5A] = '\n',
+    [0x5B] = '}',
+    [0x5D] = '\\',
+    [0x66] = '\b',
+};
+
 static volatile char keyboard_buffer[256];
 static volatile uint8_t kb_head = 0;
+static volatile uint8_t kb_shift = 0;
+static volatile uint8_t kb_ctrl = 0;
+static volatile uint8_t kb_alt = 0;
 static volatile uint8_t kb_tail = 0;
 static volatile uint32_t timer_ticks = 0;
 static volatile uint32_t worker_cycles = 0;
@@ -2190,7 +2259,18 @@ void keyboard_handler(void) {
         return;
     }
 
+    /* Break code (tecla solto) - Set 2 */
     if (kb_break) {
+        /* Rastrear teclas modificadoras sendo soltas */
+        if (kb_scancode_set == 2) {
+            if (scancode == 0x12 || scancode == 0x59) {
+                kb_shift = 0;  /* Shift esquerdo/direito solto */
+            } else if (scancode == 0x14) {
+                kb_ctrl = 0;   /* Ctrl solto */
+            } else if (scancode == 0x11) {
+                kb_alt = 0;    /* Alt solto */
+            }
+        }
         kb_break = 0;
         return;
     }
@@ -2202,13 +2282,50 @@ void keyboard_handler(void) {
         return;
     }
 
-    if (scancode < sizeof(scancode_map)) {
-        char c;
+    /* Rastrear teclas modificadoras sendo pressionadas */
+    if (kb_scancode_set == 2) {
+        if (scancode == 0x12 || scancode == 0x59) {
+            kb_shift = 1;  /* Shift esquerdo ou direito */
+            return;
+        } else if (scancode == 0x14) {
+            kb_ctrl = 1;   /* Ctrl pressionado */
+            return;
+        } else if (scancode == 0x11) {
+            kb_alt = 1;    /* Alt pressionado */
+            return;
+        }
+    } else {
+        /* Set 1 */
+        if (scancode == 0x2A || scancode == 0x36) {
+            kb_shift = 1;  /* Shift */
+            return;
+        } else if (scancode == 0x1D) {
+            kb_ctrl = 1;   /* Ctrl */
+            return;
+        } else if (scancode == 0x38) {
+            kb_alt = 1;    /* Alt */
+            return;
+        }
+    }
 
-        if (kb_scancode_set == 2) {
-            c = scancode_map_set2[scancode];
+    if (scancode < sizeof(scancode_map)) {
+        char c = 0;
+
+        /* Usar mapa com Shift se Shift estiver pressionado */
+        if (kb_shift) {
+            if (kb_scancode_set == 2) {
+                c = scancode_map_set2_shift[scancode];
+                if (!c) c = scancode_map_set2[scancode];  /* Fallback ao mapa normal */
+            } else {
+                c = scancode_map_shift[scancode];
+                if (!c) c = scancode_map[scancode];  /* Fallback ao mapa normal */
+            }
         } else {
-            c = scancode_map[scancode];
+            if (kb_scancode_set == 2) {
+                c = scancode_map_set2[scancode];
+            } else {
+                c = scancode_map[scancode];
+            }
         }
 
         if (c) {
