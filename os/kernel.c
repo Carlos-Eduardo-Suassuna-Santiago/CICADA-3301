@@ -1986,16 +1986,18 @@ static void init_pit(void) {
     outb(0x40, (divisor >> 8) & 0xFF);
 }
 
+/* Layout ABNT2 - Teclado Brasileiro (Scancode Set 1) */
 static char scancode_map[128] = {
     0, 0, '1', '2', '3', '4', '5', '6', '7', '8',
     '9', '0', '-', '=', '\b', '\t',
     'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
     '[', ']', '\n', 0,
     'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',
-    '\'', '`', 0, '\\', 'z', 'x', 'c', 'v', 'b', 'n',
+    '~', '`', 0, ']', 'z', 'x', 'c', 'v', 'b', 'n',
     'm', ',', '.', '/', 0, '*', 0, ' ',
 };
 
+/* Layout ABNT2 - Teclado Brasileiro (Scancode Set 2) */
 static char scancode_map_set2[128] = {
     [0x0D] = '\t',
     [0x0E] = '`',
@@ -2041,7 +2043,7 @@ static char scancode_map_set2[128] = {
     [0x4C] = ';',
     [0x4D] = 'p',
     [0x4E] = '-',
-    [0x52] = '\'',
+    [0x52] = '~',
     [0x54] = '[',
     [0x55] = '=',
     [0x5A] = '\n',
