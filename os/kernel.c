@@ -8,8 +8,6 @@
 #define VGA_CTRL_REGISTER 0x3D4
 #define VGA_DATA_REGISTER 0x3D5
 #define SERIAL_PORT 0x3F8
-#define PS2_DATA_PORT 0x60
-#define PS2_STATUS_PORT 0x64
 
 static volatile uint16_t *const VGA = VGA_MEMORY;
 static uint16_t cursor_pos = 0;
@@ -18,9 +16,6 @@ static uint16_t screen_width = VGA_DEFAULT_WIDTH;
 static uint16_t screen_height = VGA_DEFAULT_HEIGHT;
 static uint16_t ui_header_lines = UI_HEADER_DEFAULT_LINES;
 static uint16_t scrollback_offset = 0;
-static uint16_t mouse_x = 0;
-static uint16_t mouse_y = 0;
-static uint16_t prev_mouse_pos = 0;
 /* Serial output stays enabled for logs; serial input is opt-in to avoid phantom input on GUI VMs. */
 static uint8_t serial_input_enabled = 0;
 
@@ -67,42 +62,6 @@ static void render_scrollbar(void) {
             uint16_t idx = (ui_header_lines + i) * screen_width + (screen_width - 1);
             VGA[idx] = (uint16_t)0xB3 | (default_color << 8);
         }
-    }
-}
-
-static void render_mouse_cursor(void) {
-    uint16_t pos = mouse_y * screen_width + mouse_x;
-    if (pos >= screen_width * screen_height) {
-        return;
-    }
-    if (mouse_x >= screen_width) {
-        return;
-    }
-    if (mouse_y >= screen_height) {
-        return;
-    }
-    uint16_t char_val = VGA[pos] & 0xFF;
-    VGA[pos] = (uint16_t)char_val | (0x70 << 8);
-}
-
-static void restore_char_at_pos(uint16_t pos) {
-    if (pos >= screen_width * screen_height) {
-        return;
-    }
-    uint16_t char_val = VGA[pos] & 0xFF;
-    VGA[pos] = (uint16_t)char_val | (default_color << 8);
-}
-
-static void update_mouse_position(uint16_t x, uint16_t y) {
-    if (x >= screen_width) x = screen_width - 1;
-    if (y >= screen_height) y = screen_height - 1;
-    
-    if (mouse_x != x || mouse_y != y) {
-        restore_char_at_pos(prev_mouse_pos);
-        mouse_x = x;
-        mouse_y = y;
-        prev_mouse_pos = mouse_y * screen_width + mouse_x;
-        render_mouse_cursor();
     }
 }
 
@@ -212,7 +171,6 @@ static volatile uint32_t timer_ticks;
 
 static void print_boot_logo(void);
 static void render_scrollbar(void);
-static void render_mouse_cursor(void);
 static int str_contains(const char *text, const char *pattern);
 static void sha256_to_hex(const char *input, char *out_hex, int out_hex_len);
 
@@ -226,27 +184,24 @@ static void scroll(void) {
         start_row = 0;
     }
 
-    for (int y = start_row + 1; y < screen_height; ++y) {
-        for (int x = 0; x < screen_width - 1; ++x) {
-            VGA[(y - 1) * screen_width + x] = VGA[y * screen_width + x];
+    /* Copiar linhas de conteúdo para cima, preservando o header */
+    for (int y = start_row; y < screen_height - 1; ++y) {
+        for (int x = 0; x < screen_width; ++x) {
+            VGA[y * screen_width + x] = VGA[(y + 1) * screen_width + x];
         }
     }
     
+    /* Limpar última linha */
     uint16_t blank = ' ' | (default_color << 8);
-    for (int x = 0; x < screen_width - 1; ++x) {
+    for (int x = 0; x < screen_width; ++x) {
         VGA[(screen_height - 1) * screen_width + x] = blank;
     }
     
-    cursor_pos = (screen_height - 1) * screen_width - (screen_width - start_row * screen_width);
-    if (cursor_pos < start_row * screen_width) {
-        cursor_pos = (screen_height - 1) * screen_width;
-    }
-    
+    /* Posicionar cursor no início da última linha para continuar escrevendo */
+    cursor_pos = (screen_height - 1) * screen_width;
     scrollback_offset++;
     update_vga_cursor();
     render_scrollbar();
-    restore_char_at_pos(prev_mouse_pos);
-    render_mouse_cursor();
 }
 
 static void putchar(char c) {
@@ -260,9 +215,11 @@ static void putchar(char c) {
         VGA[cursor_pos++] = (uint16_t)c | (default_color << 8);
     }
 
-    if (cursor_pos >= screen_width * screen_height) {
+    /* Trigger scroll quando cursor chega na última linha ou além */
+    while (cursor_pos >= screen_width * screen_height) {
         scroll();
     }
+    
     update_vga_cursor();
     serial_putchar(c);
 }
@@ -1903,7 +1860,6 @@ static void clear_screen(void) {
     cursor_pos = ui_header_lines * screen_width;
     update_vga_cursor();
     render_scrollbar();
-    update_mouse_position(screen_width / 2, screen_height / 2);
 }
 
 static void sleep_ticks(uint32_t tick_count) {
