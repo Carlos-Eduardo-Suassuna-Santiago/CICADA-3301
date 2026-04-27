@@ -2219,7 +2219,6 @@ static void keyboard_process_scancode(uint8_t scancode) {
     }
 
     if (scancode == 0xF0) {
-        kb_scancode_set = 2;
         kb_break = 1;
         return;
     }
