@@ -2327,11 +2327,14 @@ static void keyboard_process_scancode(uint8_t scancode) {
             }
         }
 
-        /* Fallback defensivo para VirtualBox/layouts que entregam '[' e ']' mesmo com Shift. */
-        if (kb_shift && c == '[') {
-            c = '{';
-        } else if (kb_shift && c == ']') {
-            c = '}';
+        /*
+         * Normalizacao defensiva para VirtualBox/layouts variados:
+         * garante pares corretos de abertura/fechamento para [] e {}.
+         */
+        if (scancode == 0x1A || scancode == 0x54) {
+            c = kb_shift ? '{' : '[';
+        } else if (scancode == 0x1B || scancode == 0x5B || scancode == 0x2B || scancode == 0x5D) {
+            c = kb_shift ? '}' : ']';
         }
 
         if (c) {
